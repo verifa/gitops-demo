@@ -1,0 +1,21 @@
+{
+    "name": "gitops-demo",
+    "version": "0.1.0",
+    "main": "index.js",
+    "author": "Verifa Oy",
+    "license": "MIT",
+    "devDependencies": {
+        "copy-webpack-plugin": "^5.1.1",
+        "eslint": "^6.7.2",
+        "ts-loader": "^6.2.1",
+        "typescript": "^3.7.3",
+        "webpack": "^4.41.3",
+        "webpack-cli": "^3.3.10",
+        "webpack-dev-server": "^3.9.0"
+    },
+    "private": true,
+    "scripts": {
+        "build": "webpack",
+        "dev": "webpack-dev-server"
+    }
+}
