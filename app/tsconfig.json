@@ -1,12 +1,15 @@
 {
     "compilerOptions": {
-        "module": "es6",
+        "module": "commonjs",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "sourceMap": true,
-        "target": "ES5"
+        "target": "ES5",
+        "esModuleInterop": true,
+        "strict": true
     },
+    // "lib": ["webworker", "es6", "scripthost"],
     "include": ["src/**/*"],
     "exclude": ["node_modules", "**/*.spec.ts"]
 }

@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 
 const nRows = 50;
 const nCols = 50;
@@ -6,6 +7,8 @@ const visWidth = 900;
 const visHeight = 900;
 
 const cellSize = visHeight / nRows;
+
+const worker = new MyWorker();
 
 const initialState = () => {
     let array: number[][] = [];
@@ -27,21 +30,24 @@ const initialState = () => {
     return array;
 };
 
-const render = (
-    root: d3.Selection<SVGSVGElement, any, any, any>,
-    state: number[][]
-) => {
-    root.selectAll("g")
-        .data(state) // rows
-        .enter()
+const render = (state: number[][]) => {
+    const root = d3.select("#visRoot").select("svg");
+
+    const rows = root.selectAll("g").data(state);
+
+    rows.exit().remove();
+
+    rows.enter()
         .append("g")
         .attr(
             "transform",
             (d: number[], i: number) => `translate(0, ${i * cellSize})`
-        )
-        .selectAll("rect")
-        .data((d: number[]) => d) // cols
-        .enter()
+        );
+
+    const cols = rows.selectAll("rect").data((d: number[]) => d);
+
+    cols.exit().remove();
+    cols.enter()
         .append("rect")
         .attr("width", cellSize)
         .attr("height", cellSize)
@@ -49,19 +55,32 @@ const render = (
         .attr("stroke", "white")
         .attr("stroke-width", 5)
         .attr("x", (d: number, i: number) => i * cellSize);
+
+    cols.transition()
+        .duration(500)
+        .attr("fill", (d: number) => (d ? "red" : "black"));
 };
 
 const init = () => {
-    const root = d3.select("#visRoot");
-
-    const svg = root
+    d3.select("#visRoot")
         .append("svg")
         .attr("width", visWidth)
         .attr("height", visHeight);
 
     let state = initialState();
 
-    render(svg, state);
+    // Initial render
+    render(state);
+
+    worker.onmessage = (ev: MessageEvent) => {
+        if (ev.data.type == "newState") {
+            console.log("Rendering a new state");
+
+            render(ev.data.state);
+        }
+    };
+
+    worker.postMessage({ type: "start", state: state });
 };
 
 document.addEventListener("DOMContentLoaded", init);
