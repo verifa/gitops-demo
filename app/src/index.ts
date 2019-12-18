@@ -1,10 +1,10 @@
 import * as d3 from "d3";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 
-const nRows = 50;
-const nCols = 50;
-const visWidth = 900;
-const visHeight = 900;
+const nRows = 40;
+const nCols = 40;
+const visWidth = 1000;
+const visHeight = 1000;
 
 const cellSize = visHeight / nRows;
 
@@ -13,7 +13,7 @@ const worker = new MyWorker();
 const initialState = () => {
     let array: number[][] = [];
 
-    const pAlive = 0.01;
+    const pAlive = 0.15;
 
     for (let i = 0; i < nRows; ++i) {
         array.push([] as number[]);
@@ -27,38 +27,56 @@ const initialState = () => {
         }
     }
 
+    // Add a glider so something happens
+    array[0][0] = 1;
+    array[2][0] = 1;
+    array[1][1] = 1;
+    array[2][1] = 1;
+    array[1][2] = 1;
+
     return array;
 };
 
 const render = (state: number[][]) => {
     const root = d3.select("#visRoot").select("svg");
+    const transition = root.transition().duration(100);
 
-    const rows = root.selectAll("g").data(state);
-
-    rows.exit().remove();
-
-    rows.enter()
-        .append("g")
-        .attr(
-            "transform",
-            (d: number[], i: number) => `translate(0, ${i * cellSize})`
+    let rows = root
+        .selectAll(".row")
+        .data(state)
+        .join(enter =>
+            enter
+                .append("g")
+                .classed("row", true)
+                .attr(
+                    "transform",
+                    (d: number[], i: number) => `translate(0, ${i * cellSize})`
+                )
         );
 
-    const cols = rows.selectAll("rect").data((d: number[]) => d);
+    // TODO: Can we do an update "flash" with two transitions?
 
-    cols.exit().remove();
-    cols.enter()
-        .append("rect")
-        .attr("width", cellSize)
-        .attr("height", cellSize)
-        .attr("fill", (d: number) => (d ? "red" : "black"))
-        .attr("stroke", "white")
-        .attr("stroke-width", 5)
-        .attr("x", (d: number, i: number) => i * cellSize);
-
-    cols.transition()
-        .duration(500)
-        .attr("fill", (d: number) => (d ? "red" : "black"));
+    let cells = rows
+        .selectAll(".cell")
+        .data(d => d)
+        .join(
+            enter =>
+                enter
+                    .append("rect")
+                    .classed("cell", true)
+                    .attr("width", cellSize)
+                    .attr("height", cellSize)
+                    .attr("fill", (d: number) => (d ? "red" : "black"))
+                    .attr("stroke", "white")
+                    .attr("stroke-width", 5)
+                    .attr("x", (d: number, i: number) => i * cellSize),
+            update =>
+                update.call(update =>
+                    update
+                        .transition(transition)
+                        .attr("fill", (d: number) => (d ? "red" : "black"))
+                )
+        );
 };
 
 const init = () => {
