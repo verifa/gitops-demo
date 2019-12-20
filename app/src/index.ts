@@ -1,4 +1,5 @@
 import * as d3 from "d3";
+import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { getPRList } from "./gitStuff";
 
@@ -83,6 +84,10 @@ const render = (state: number[][]) => {
         );
 };
 
+const capitalise = (text: string) => {
+    return text[0].toUpperCase() + text.slice(1);
+};
+
 const updatePrList = (data: any) => {
     const draw = (data: any) => {
         d3.select("#prRoot")
@@ -90,7 +95,7 @@ const updatePrList = (data: any) => {
             .data(data)
             .join(
                 enter => {
-                    const row = enter.append("tr").classed(".row", true);
+                    const row = enter.append("tr").classed("row", true);
 
                     // TODO: Add some types
 
@@ -99,7 +104,14 @@ const updatePrList = (data: any) => {
                         .text((d: any) => d.title);
                     row.append("td")
                         .classed("created", true)
-                        .text((d: any) => d.created_at);
+                        .text((d: any) =>
+                            capitalise(
+                                formatRelative(
+                                    new Date(d.created_at),
+                                    new Date()
+                                )
+                            )
+                        );
                     row.append("td")
                         .classed("status", true)
                         .text((d: any) => d.status);
@@ -108,7 +120,16 @@ const updatePrList = (data: any) => {
                 },
                 update => {
                     update.select(".title").text((d: any) => d.title);
-                    update.select(".created").text((d: any) => d.created_at);
+                    update
+                        .select(".created")
+                        .text((d: any) =>
+                            capitalise(
+                                formatRelative(
+                                    new Date(d.created_at),
+                                    new Date()
+                                )
+                            )
+                        );
                     update.select(".status").text((d: any) => d.status);
 
                     update
