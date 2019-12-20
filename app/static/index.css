@@ -1,3 +1,9 @@
+@import url("https://fonts.googleapis.com/css?family=Roboto+Slab&display=swap");
+
+body {
+    font-family: "Roboto Slab", serif;
+}
+
 #visRoot {
     text-align: center;
 }
@@ -10,4 +16,24 @@
 svg {
     overflow: visible;
     box-shadow: 0px -0px 10000px transparent;
+}
+
+#prRoot {
+    position: fixed;
+    left: 0;
+    top: 0;
+    margin-left: 25px;
+}
+
+th,
+td {
+    padding-left: 5px;
+    padding-right: 5px;
+    width: 200px;
+    padding-bottom: 5px;
+    text-align: center;
+}
+
+th {
+    font-weight: bold;
 }

@@ -1,5 +1,7 @@
 import * as d3 from "d3";
+import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
+import { getPRList, PullRequest } from "./gitStuff";
 
 const nRows = 40;
 const nCols = 40;
@@ -82,11 +84,87 @@ const render = (state: number[][]) => {
         );
 };
 
+const capitalise = (text: string) => {
+    return text[0].toUpperCase() + text.slice(1);
+};
+
+const updatePrList = () => {
+    const draw = (data: PullRequest[]) => {
+        d3.select("#prRoot")
+            .selectAll(".row")
+            .data(data)
+            .join(
+                enter => {
+                    const row = enter.append("tr").classed("row", true);
+
+                    row.append("td")
+                        .classed("title", true)
+                        .text((d: any) => d.title);
+                    row.append("td")
+                        .classed("created", true)
+                        .text(d =>
+                            capitalise(formatRelative(d.created_at, new Date()))
+                        );
+                    row.append("td")
+                        .classed("status", true)
+                        .text((d: any) => d.status);
+
+                    return row;
+                },
+                update => {
+                    update.select(".title").text((d: any) => d.title);
+                    update
+                        .select(".created")
+                        .text((d: any) =>
+                            capitalise(formatRelative(d.created_at, new Date()))
+                        );
+                    update.select(".status").text((d: any) => d.status);
+
+                    update
+                        .transition()
+                        .duration(250)
+                        .tween("attr.opacity", () => {
+                            function setter(t: number) {
+                                // @ts-ignore
+                                this.setAttribute(
+                                    "opacity",
+                                    1 - Math.sin(t * Math.PI)
+                                );
+                            }
+
+                            return setter;
+                        });
+
+                    return update;
+                },
+                exit => exit.remove()
+            );
+
+        console.log("Updated PR list");
+
+        setTimeout(updatePrList, 5000);
+    };
+
+    getPRList(draw);
+};
+
 const init = () => {
     d3.select("#visRoot")
         .append("svg")
         .attr("width", visWidth)
         .attr("height", visHeight);
+
+    const colHeaders = ["Name", "Created", "Status"];
+
+    d3.select("#prRoot")
+        .append("table")
+        .append("tr")
+        .classed("header", true)
+        .selectAll("th")
+        .data(colHeaders)
+        .enter()
+        .append("th")
+        .text(d => d);
 
     let state = initialState();
 
@@ -100,6 +178,9 @@ const init = () => {
             render(ev.data.state);
         }
     };
+
+    // Set the PR list updating
+    setTimeout(updatePrList, 5000);
 
     worker.postMessage({ type: "start", state: state });
 };
