@@ -106,8 +106,8 @@ const updatePrList = () => {
                             capitalise(formatRelative(d.created_at, new Date()))
                         );
                     row.append("td")
-                        .classed("status", true)
-                        .text((d: any) => d.status);
+                        .classed("state", true)
+                        .text((d: any) => capitalise(d.state));
 
                     return row;
                 },
@@ -118,7 +118,9 @@ const updatePrList = () => {
                         .text((d: any) =>
                             capitalise(formatRelative(d.created_at, new Date()))
                         );
-                    update.select(".status").text((d: any) => d.status);
+                    update
+                        .select(".state")
+                        .text((d: any) => capitalise(d.state));
 
                     update
                         .transition()
