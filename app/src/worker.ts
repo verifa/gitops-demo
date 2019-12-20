@@ -65,7 +65,7 @@ const nextState = (state: number[][]): number[][] => {
 };
 
 const mainLoop = async (state: number[][]) => {
-    const minTimeBetweenFrames = 250;
+    const minTimeBetweenFrames = 500;
 
     while (!shouldStop) {
         let lastUpdate = Date.now();

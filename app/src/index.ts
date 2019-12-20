@@ -39,7 +39,7 @@ const initialState = () => {
 
 const render = (state: number[][]) => {
     const root = d3.select("#visRoot").select("svg");
-    const transition = root.transition().duration(100);
+    const transition = root.transition().duration(250);
 
     let rows = root
         .selectAll(".row")
@@ -54,7 +54,8 @@ const render = (state: number[][]) => {
                 )
         );
 
-    // TODO: Can we do an update "flash" with two transitions?
+    const baseColour = "rgb(245, 245 ,245)";
+    const liveColour = "#262F42";
 
     let cells = rows
         .selectAll(".cell")
@@ -66,15 +67,17 @@ const render = (state: number[][]) => {
                     .classed("cell", true)
                     .attr("width", cellSize)
                     .attr("height", cellSize)
-                    .attr("fill", (d: number) => (d ? "red" : "black"))
-                    .attr("stroke", "white")
+                    .attr("fill", (d: number) => (d ? liveColour : baseColour))
+                    .attr("stroke", baseColour)
                     .attr("stroke-width", 5)
                     .attr("x", (d: number, i: number) => i * cellSize),
             update =>
                 update.call(update =>
                     update
                         .transition(transition)
-                        .attr("fill", (d: number) => (d ? "red" : "black"))
+                        .attr("fill", (d: number) =>
+                            d ? liveColour : baseColour
+                        )
                 )
         );
 };
