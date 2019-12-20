@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
-import { getPRList } from "./gitStuff";
+import { getPRList, PullRequest } from "./gitStuff";
 
 const nRows = 40;
 const nCols = 40;
@@ -88,8 +88,8 @@ const capitalise = (text: string) => {
     return text[0].toUpperCase() + text.slice(1);
 };
 
-const updatePrList = (data: any) => {
-    const draw = (data: any) => {
+const updatePrList = () => {
+    const draw = (data: PullRequest[]) => {
         d3.select("#prRoot")
             .selectAll(".row")
             .data(data)
@@ -97,20 +97,13 @@ const updatePrList = (data: any) => {
                 enter => {
                     const row = enter.append("tr").classed("row", true);
 
-                    // TODO: Add some types
-
                     row.append("td")
                         .classed("title", true)
                         .text((d: any) => d.title);
                     row.append("td")
                         .classed("created", true)
-                        .text((d: any) =>
-                            capitalise(
-                                formatRelative(
-                                    new Date(d.created_at),
-                                    new Date()
-                                )
-                            )
+                        .text(d =>
+                            capitalise(formatRelative(d.created_at, new Date()))
                         );
                     row.append("td")
                         .classed("status", true)
@@ -123,12 +116,7 @@ const updatePrList = (data: any) => {
                     update
                         .select(".created")
                         .text((d: any) =>
-                            capitalise(
-                                formatRelative(
-                                    new Date(d.created_at),
-                                    new Date()
-                                )
-                            )
+                            capitalise(formatRelative(d.created_at, new Date()))
                         );
                     update.select(".status").text((d: any) => d.status);
 
