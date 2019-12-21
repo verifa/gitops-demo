@@ -1,0 +1,17 @@
+#https://docs.garden.io/reference/module-types/container
+kind: Module
+name: app
+description: container for running game of life
+type: container
+services:
+  - name: app
+    ports:
+      - name: http
+        containerPort: 8000
+        servicePort: 80
+    # healthCheck:
+    #   httpGet:
+    #     path:
+    #     port: 
+    #     scheme: HTTP
+
