@@ -2,6 +2,7 @@ import * as d3 from "d3";
 import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { getPRList, PullRequest } from "./gitStuff";
+import { loadConfig, Config } from "./config";
 
 const nRows = 40;
 const nCols = 40;
@@ -39,7 +40,7 @@ const initialState = () => {
     return array;
 };
 
-const render = (state: number[][]) => {
+const render = (state: number[][], config: Config) => {
     const root = d3.select("#visRoot").select("svg");
     const transition = root.transition().duration(250);
 
@@ -56,11 +57,10 @@ const render = (state: number[][]) => {
                 )
         );
 
-    const baseColour = "rgb(245, 245 ,245)";
-    const liveColour = "#262F42";
+    const baseColour = config.colours.dead;
+    const liveColour = config.colours.alive;
 
-    let cells = rows
-        .selectAll(".cell")
+    rows.selectAll(".cell")
         .data(d => d)
         .join(
             enter =>
@@ -168,23 +168,25 @@ const init = () => {
         .append("th")
         .text(d => d);
 
-    let state = initialState();
-
-    // Initial render
-    render(state);
-
-    worker.onmessage = (ev: MessageEvent) => {
-        if (ev.data.type == "newState") {
-            console.log("Rendering a new state");
-
-            render(ev.data.state);
-        }
-    };
-
     // Set the PR list updating
     setTimeout(updatePrList, 5000);
 
-    worker.postMessage({ type: "start", state: state });
+    loadConfig().then(config => {
+        let state = initialState();
+
+        worker.onmessage = (ev: MessageEvent) => {
+            if (ev.data.type == "newState") {
+                console.log("Rendering a new state");
+
+                render(ev.data.state, config);
+            }
+        };
+
+        // Initial render
+        render(state, config);
+
+        worker.postMessage({ type: "start", state: state });
+    });
 };
 
 document.addEventListener("DOMContentLoaded", init);
