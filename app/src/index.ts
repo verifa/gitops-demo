@@ -83,7 +83,22 @@ const render = (state: number[][], config: Config) => {
 };
 
 const setTimer = (count: number) => {
-    d3.select("#countDown").html(count.toString());
+    d3.select("#countDown")
+        .datum(count)
+        .text(d => d.toString())
+        .transition()
+        .duration(500)
+        .tween(
+            "attr.opacity",
+            () =>
+                function setter(t: number) {
+                    // @ts-ignore
+                    this.setAttribute(
+                        "fill-opacity",
+                        1 - Math.sin(t * Math.PI)
+                    );
+                }
+        );
 };
 
 const init = () => {
@@ -93,8 +108,16 @@ const init = () => {
         .attr("height", visHeight);
 
     d3.select("#topPanel")
-        .append("h1")
-        .attr("id", "countDown");
+        .append("svg")
+        .attr("height", 50)
+        .append("text")
+        .attr("x", "50%")
+        .attr("y", "50%")
+        .attr("font-size", "36pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("id", "countDown")
+        .attr("fill", "#000000");
 
     loadConfig().then(config => {
         let state = initialState();
