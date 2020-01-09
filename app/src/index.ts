@@ -150,6 +150,10 @@ const updatePrList = () => {
     getPRList(draw);
 };
 
+const setTimer = (count: number) => {
+    d3.select("#countDown").html(count.toString());
+};
+
 const init = () => {
     d3.select("#visRoot")
         .append("svg")
@@ -168,6 +172,10 @@ const init = () => {
         .append("th")
         .text(d => d);
 
+    d3.select("#topPanel")
+        .append("h1")
+        .attr("id", "countDown");
+
     // Set the PR list updating
     setTimeout(updatePrList, 5000);
 
@@ -182,10 +190,42 @@ const init = () => {
             }
         };
 
+        const refreshCheckTimeout = 2000;
+
+        const checkShouldRefresh = async () => {
+            // Check if config has changed
+            loadConfig().then(latestConfig => {
+                if (JSON.stringify(config) !== JSON.stringify(latestConfig)) {
+                    // Config has changed, must refresh
+                    console.log("Config changed, refreshing...");
+                    window.location.reload();
+                }
+            });
+
+            setTimeout(checkShouldRefresh, refreshCheckTimeout);
+        };
+
+        setTimeout(checkShouldRefresh, refreshCheckTimeout);
+
         // Initial render
         render(state, config);
 
-        worker.postMessage({ type: "start", state: state });
+        const initialDelay = 5000;
+
+        const countDown = (count: number, final: () => void | null) => {
+            setTimer(count / 1000);
+
+            if (count > 0) {
+                count = count - 1000;
+                setTimeout(() => countDown(count, final), 1000);
+            } else {
+                if (final) final();
+            }
+        };
+
+        countDown(initialDelay, () => {
+            worker.postMessage({ type: "start", state: state });
+        });
     });
 };
 
