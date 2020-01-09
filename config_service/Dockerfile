@@ -1,8 +1,10 @@
 FROM node:stretch
 
-COPY . .
+COPY package*.json .
 
 RUN yarn install
+
+COPY . .
 
 EXPOSE 3000
 
