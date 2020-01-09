@@ -1,7 +1,5 @@
 import * as d3 from "d3";
-import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
-import { getPRList, PullRequest } from "./gitStuff";
 import { loadConfig, Config } from "./config";
 
 const nRows = 40;
@@ -84,72 +82,6 @@ const render = (state: number[][], config: Config) => {
         );
 };
 
-const capitalise = (text: string) => {
-    return text[0].toUpperCase() + text.slice(1);
-};
-
-const updatePrList = () => {
-    const draw = (data: PullRequest[]) => {
-        d3.select("#prRoot")
-            .selectAll(".row")
-            .data(data)
-            .join(
-                enter => {
-                    const row = enter.append("tr").classed("row", true);
-
-                    row.append("td")
-                        .classed("title", true)
-                        .text((d: any) => d.title);
-                    row.append("td")
-                        .classed("created", true)
-                        .text(d =>
-                            capitalise(formatRelative(d.created_at, new Date()))
-                        );
-                    row.append("td")
-                        .classed("state", true)
-                        .text((d: any) => capitalise(d.state));
-
-                    return row;
-                },
-                update => {
-                    update.select(".title").text((d: any) => d.title);
-                    update
-                        .select(".created")
-                        .text((d: any) =>
-                            capitalise(formatRelative(d.created_at, new Date()))
-                        );
-                    update
-                        .select(".state")
-                        .text((d: any) => capitalise(d.state));
-
-                    update
-                        .transition()
-                        .duration(250)
-                        .tween("attr.opacity", () => {
-                            function setter(t: number) {
-                                // @ts-ignore
-                                this.setAttribute(
-                                    "opacity",
-                                    1 - Math.sin(t * Math.PI)
-                                );
-                            }
-
-                            return setter;
-                        });
-
-                    return update;
-                },
-                exit => exit.remove()
-            );
-
-        console.log("Updated PR list");
-
-        setTimeout(updatePrList, 5000);
-    };
-
-    getPRList(draw);
-};
-
 const setTimer = (count: number) => {
     d3.select("#countDown").html(count.toString());
 };
@@ -160,24 +92,9 @@ const init = () => {
         .attr("width", visWidth)
         .attr("height", visHeight);
 
-    const colHeaders = ["Name", "Created", "Status"];
-
-    d3.select("#prRoot")
-        .append("table")
-        .append("tr")
-        .classed("header", true)
-        .selectAll("th")
-        .data(colHeaders)
-        .enter()
-        .append("th")
-        .text(d => d);
-
     d3.select("#topPanel")
         .append("h1")
         .attr("id", "countDown");
-
-    // Set the PR list updating
-    setTimeout(updatePrList, 5000);
 
     loadConfig().then(config => {
         let state = initialState();
