@@ -1,9 +1,16 @@
-FROM node:stretch
+FROM node:stretch as build
 
-COPY . .
+WORKDIR /app
+
+COPY package*.json .
 
 RUN yarn install --dev
 
-EXPOSE 8000
+COPY . .
 
-ENTRYPOINT [ "yarn", "dev" ]
+RUN yarn build
+
+FROM httpd:2.4
+COPY --from=build /app/dist /usr/local/apache2/htdocs/
+
+EXPOSE 80

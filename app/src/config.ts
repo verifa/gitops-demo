@@ -16,9 +16,8 @@ export const loadConfig = async () => {
         }
     };
 
-    // TODO: sort out the url
     const response = await axios
-        .get("http://localhost:3000/config")
+        .get("/config")
         .then(response => {
             Object.assign(config, response.data);
         })
