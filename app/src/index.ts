@@ -11,29 +11,27 @@ const cellSize = visHeight / nRows;
 
 const worker = new MyWorker();
 
-const initialState = () => {
+const initialState = (aliveIndices: number[][]) => {
     let array: number[][] = [];
 
-    const pAlive = 0.15;
+    const configLowerCorner = {
+        x: 15,
+        y: 20
+    };
 
     for (let i = 0; i < nRows; ++i) {
         array.push([] as number[]);
 
         for (let j = 0; j < nCols; ++j) {
-            if (Math.random() < pAlive) {
-                array[i].push(1);
-            } else {
-                array[i].push(0);
-            }
+            array[i].push(0);
         }
     }
 
-    // Add a glider so something happens
-    array[0][0] = 1;
-    array[2][0] = 1;
-    array[1][1] = 1;
-    array[2][1] = 1;
-    array[1][2] = 1;
+    for (let livingIndex of aliveIndices) {
+        array[configLowerCorner.y - livingIndex[1]][
+            configLowerCorner.x + livingIndex[0]
+        ] = 1;
+    }
 
     return array;
 };
@@ -102,10 +100,22 @@ const setTimer = (count: number) => {
 };
 
 const init = () => {
-    d3.select("#visRoot")
+    const mainVis = d3
+        .select("#visRoot")
         .append("svg")
         .attr("width", visWidth)
         .attr("height", visHeight);
+
+    // Add a border
+    const borderOffset = 10;
+    mainVis
+        .append("rect")
+        .attr("x", -borderOffset)
+        .attr("y", -borderOffset)
+        .attr("height", visHeight + borderOffset * 2)
+        .attr("width", visWidth + borderOffset * 2)
+        .attr("stroke", "#000000")
+        .attr("fill", "none");
 
     d3.select("#topPanel")
         .append("svg")
@@ -120,7 +130,7 @@ const init = () => {
         .attr("fill", "#000000");
 
     loadConfig().then(config => {
-        let state = initialState();
+        let state = initialState(config.initialAlive);
 
         worker.onmessage = (ev: MessageEvent) => {
             if (ev.data.type == "newState") {
@@ -133,6 +143,9 @@ const init = () => {
         const refreshCheckTimeout = 2000;
 
         const checkShouldRefresh = async () => {
+            // Never reload if config connection failed
+            if (!config.connected) return false;
+
             // Check if config has changed
             loadConfig().then(latestConfig => {
                 if (JSON.stringify(config) !== JSON.stringify(latestConfig)) {
