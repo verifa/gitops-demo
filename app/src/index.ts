@@ -1,7 +1,5 @@
 import * as d3 from "d3";
-import { formatRelative } from "date-fns";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
-import { getPRList, PullRequest } from "./gitStuff";
 import { loadConfig, Config } from "./config";
 
 const nRows = 40;
@@ -13,29 +11,27 @@ const cellSize = visHeight / nRows;
 
 const worker = new MyWorker();
 
-const initialState = () => {
+const initialState = (aliveIndices: number[][]) => {
     let array: number[][] = [];
 
-    const pAlive = 0.15;
+    const configLowerCorner = {
+        x: 15,
+        y: 20
+    };
 
     for (let i = 0; i < nRows; ++i) {
         array.push([] as number[]);
 
         for (let j = 0; j < nCols; ++j) {
-            if (Math.random() < pAlive) {
-                array[i].push(1);
-            } else {
-                array[i].push(0);
-            }
+            array[i].push(0);
         }
     }
 
-    // Add a glider so something happens
-    array[0][0] = 1;
-    array[2][0] = 1;
-    array[1][1] = 1;
-    array[2][1] = 1;
-    array[1][2] = 1;
+    for (let livingIndex of aliveIndices) {
+        array[configLowerCorner.y - livingIndex[1]][
+            configLowerCorner.x + livingIndex[0]
+        ] = 1;
+    }
 
     return array;
 };
@@ -84,95 +80,57 @@ const render = (state: number[][], config: Config) => {
         );
 };
 
-const capitalise = (text: string) => {
-    return text[0].toUpperCase() + text.slice(1);
-};
-
-const updatePrList = () => {
-    const draw = (data: PullRequest[]) => {
-        d3.select("#prRoot")
-            .selectAll(".row")
-            .data(data)
-            .join(
-                enter => {
-                    const row = enter.append("tr").classed("row", true);
-
-                    row.append("td")
-                        .classed("title", true)
-                        .text((d: any) => d.title);
-                    row.append("td")
-                        .classed("created", true)
-                        .text(d =>
-                            capitalise(formatRelative(d.created_at, new Date()))
-                        );
-                    row.append("td")
-                        .classed("state", true)
-                        .text((d: any) => capitalise(d.state));
-
-                    return row;
-                },
-                update => {
-                    update.select(".title").text((d: any) => d.title);
-                    update
-                        .select(".created")
-                        .text((d: any) =>
-                            capitalise(formatRelative(d.created_at, new Date()))
-                        );
-                    update
-                        .select(".state")
-                        .text((d: any) => capitalise(d.state));
-
-                    update
-                        .transition()
-                        .duration(250)
-                        .tween("attr.opacity", () => {
-                            function setter(t: number) {
-                                // @ts-ignore
-                                this.setAttribute(
-                                    "opacity",
-                                    1 - Math.sin(t * Math.PI)
-                                );
-                            }
-
-                            return setter;
-                        });
-
-                    return update;
-                },
-                exit => exit.remove()
-            );
-
-        console.log("Updated PR list");
-
-        setTimeout(updatePrList, 5000);
-    };
-
-    getPRList(draw);
+const setTimer = (count: number) => {
+    d3.select("#countDown")
+        .datum(count)
+        .text(d => d.toString())
+        .transition()
+        .duration(500)
+        .tween(
+            "attr.opacity",
+            () =>
+                function setter(t: number) {
+                    // @ts-ignore
+                    this.setAttribute(
+                        "fill-opacity",
+                        1 - Math.sin(t * Math.PI)
+                    );
+                }
+        );
 };
 
 const init = () => {
-    d3.select("#visRoot")
+    const mainVis = d3
+        .select("#visRoot")
         .append("svg")
         .attr("width", visWidth)
         .attr("height", visHeight);
 
-    const colHeaders = ["Name", "Created", "Status"];
+    // Add a border
+    const borderOffset = 10;
+    mainVis
+        .append("rect")
+        .attr("x", -borderOffset)
+        .attr("y", -borderOffset)
+        .attr("height", visHeight + borderOffset * 2)
+        .attr("width", visWidth + borderOffset * 2)
+        .attr("stroke", "#000000")
+        .attr("fill", "none");
 
-    d3.select("#prRoot")
-        .append("table")
-        .append("tr")
-        .classed("header", true)
-        .selectAll("th")
-        .data(colHeaders)
-        .enter()
-        .append("th")
-        .text(d => d);
-
-    // Set the PR list updating
-    setTimeout(updatePrList, 5000);
+    d3.select("#topPanel")
+        .append("svg")
+        .attr("height", 50)
+        .append("text")
+        .attr("x", "50%")
+        .attr("y", "50%")
+        .attr("font-size", "36pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("id", "countDown")
+        .attr("fill", "#000000");
 
     loadConfig().then(config => {
-        let state = initialState();
+        let state = initialState(config.initialAlive);
 
         worker.onmessage = (ev: MessageEvent) => {
             if (ev.data.type == "newState") {
@@ -182,10 +140,45 @@ const init = () => {
             }
         };
 
+        const refreshCheckTimeout = 2000;
+
+        const checkShouldRefresh = async () => {
+            // Never reload if config connection failed
+            if (!config.connected) return false;
+
+            // Check if config has changed
+            loadConfig().then(latestConfig => {
+                if (JSON.stringify(config) !== JSON.stringify(latestConfig)) {
+                    // Config has changed, must refresh
+                    console.log("Config changed, refreshing...");
+                    window.location.reload();
+                }
+            });
+
+            setTimeout(checkShouldRefresh, refreshCheckTimeout);
+        };
+
+        setTimeout(checkShouldRefresh, refreshCheckTimeout);
+
         // Initial render
         render(state, config);
 
-        worker.postMessage({ type: "start", state: state });
+        const initialDelay = 5000;
+
+        const countDown = (count: number, final: () => void | null) => {
+            setTimer(count / 1000);
+
+            if (count > 0) {
+                count = count - 1000;
+                setTimeout(() => countDown(count, final), 1000);
+            } else {
+                if (final) final();
+            }
+        };
+
+        countDown(initialDelay, () => {
+            worker.postMessage({ type: "start", state: state });
+        });
     });
 };
 
