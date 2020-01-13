@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { loadConfig, Config } from "./config";
+import { updatePipelineVis, getPipelineData } from "./pipeline";
 
 const nRows = 40;
 const nCols = 40;
@@ -81,11 +82,27 @@ const render = (state: number[][], config: Config) => {
 };
 
 const setTimer = (count: number) => {
-    d3.select("#countDown")
-        .datum(count)
-        .text(d => d.toString())
+    // d3.select("#countDown")
+    //     .datum(count)
+    //     .text(d => d.toString())
+    //     .transition()
+    //     .duration(500)
+    //     .tween(
+    //         "attr.opacity",
+    //         () =>
+    //             function setter(t: number) {
+    //                 // @ts-ignore
+    //                 this.setAttribute(
+    //                     "fill-opacity",
+    //                     1 - Math.sin(t * Math.PI)
+    //                 );
+    //             }
+    //     );
+
+    d3.select("#visRoot")
+        .select("svg")
         .transition()
-        .duration(500)
+        .duration(750)
         .tween(
             "attr.opacity",
             () =>
@@ -119,7 +136,7 @@ const init = () => {
 
     d3.select("#topPanel")
         .append("svg")
-        .attr("height", 50)
+        .attr("height", 125)
         .append("text")
         .attr("x", "50%")
         .attr("y", "50%")
@@ -128,6 +145,11 @@ const init = () => {
         .attr("dominant-baseline", "middle")
         .attr("id", "countDown")
         .attr("fill", "#000000");
+
+    d3.select("#topPanel")
+        .select("svg")
+        .append("g")
+        .attr("id", "pipeline");
 
     loadConfig().then(config => {
         let state = initialState(config.initialAlive);
@@ -159,6 +181,17 @@ const init = () => {
         };
 
         setTimeout(checkShouldRefresh, refreshCheckTimeout);
+
+        const pipelineUpdateTimeout = 1000;
+
+        const updatePipeline = () => {
+            const data = getPipelineData();
+            updatePipelineVis(data);
+
+            setTimeout(updatePipeline, pipelineUpdateTimeout);
+        };
+
+        setTimeout(updatePipeline, pipelineUpdateTimeout);
 
         // Initial render
         render(state, config);
