@@ -1,0 +1,42 @@
+version: 2.1
+
+.references:
+  garden-image: &garden-image
+    docker:
+      - image: gardendev/garden-gcloud:latest
+  jsonlint-image: &jsonlint-image
+    docker:
+      - image: sahsu/docker-jsonlint:latest
+
+jobs:
+  test:
+    <<: *jsonlint-image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: jsonlint
+          command: |
+            jsonlint -q data/data.json > result.txt
+            if grep "Error" result.txt ;
+            then
+                exit 1
+            fi
+  deploy:
+    <<: *garden-image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: Build and push the image to the production registry with garden
+          command: |
+            echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
+            garden publish --env=prod
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - test
+      - deploy

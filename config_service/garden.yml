@@ -2,6 +2,7 @@ kind: Module
 name: backend
 description: Backend service container
 type: container
+image: ${var.container-registry}/gol-backend-${var.stage}
 services:
   - name: backend
     ports:

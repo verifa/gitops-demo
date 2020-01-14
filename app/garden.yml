@@ -3,6 +3,7 @@ kind: Module
 name: app
 description: container for running game of life
 type: container
+image: ${var.container-registry}/gol-frontend-${var.stage}
 services:
     - name: app
       dependencies:
