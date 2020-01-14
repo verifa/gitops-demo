@@ -18,8 +18,8 @@ jobs:
       - run:
           name: jsonlint
           command: |
-            jsonlint -q data/data.json > result.txt
-            if grep "Error" result.txt ;
+            jsonlint -q config_service/data.json > jsonlint-result.txt
+            if grep "Error" jsonlint-result.txt ;
             then
                 exit 1
             fi
