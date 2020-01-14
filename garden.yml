@@ -14,7 +14,7 @@ providers:
     environments: [local]
   - name: kubernetes
     environments: [prod]
-    context: gitops_demo
+    context: gke_${local.env.GOOGLE_PROJECT_ID}_${local.env.GOOGLE_COMPUTE_ZONE}_${local.env.GOOGLE_PROD_CLUSTER_ID}
     buildMode: local-docker
     deploymentRegistry:
       hostname: docker.io
