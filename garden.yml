@@ -2,5 +2,22 @@ kind: Project
 name: gitops-demo
 environments:
   - name: local
-    providers:
-      - name: local-kubernetes
+    variables:
+      container-registry: benmarsden
+      stage: dev
+  - name: prod
+    variables:
+      container-registry: benmarsden
+      stage: prod
+providers:
+  - name: local-kubernetes
+    environments: [local]
+  - name: kubernetes
+    environments: [prod]
+    context: gke_${local.env.GOOGLE_PROJECT_ID}_${local.env.GOOGLE_COMPUTE_ZONE}_${local.env.GOOGLE_PROD_CLUSTER_ID}
+    defaultHostname: ${local.env.USER || local.username}-gitops-demo.garden
+    buildMode: local-docker
+    deploymentRegistry:
+      hostname: docker.io
+      namespace: benmarsden
+     

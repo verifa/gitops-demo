@@ -1,4 +1,3 @@
-#https://docs.garden.io/reference/module-types/container
 kind: Module
 name: app
 description: container for running game of life
