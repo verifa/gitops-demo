@@ -1,0 +1,55 @@
+version: 2.1
+
+.references:
+  garden-image: &garden-image
+    docker:
+      - image: gardendev/garden-gcloud:latest
+  jsonlint-image: &jsonlint-image
+    docker:
+      - image: sahsu/docker-jsonlint:latest
+commands:
+  configure_kubectl_context_prod:
+    description: Configure the kubectl context so that we can access our remote production cluster.
+    steps:
+      - run:
+          name: Configure kubectl context via gcloud
+          command: |
+            gcloud --quiet components update
+            echo $GCLOUD_SERVICE_KEY | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project $GOOGLE_PROJECT_ID && gcloud --quiet config set compute/region $GOOGLE_COMPUTE_ZONE
+            gcloud --quiet container clusters get-credentials $GOOGLE_PROD_CLUSTER_ID --region $GOOGLE_COMPUTE_ZONE
+
+jobs:
+  test:
+    <<: *jsonlint-image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: jsonlint
+          command: |
+            jsonlint -q config_service/data.json > jsonlint-result.txt
+            if grep "Error" jsonlint-result.txt ;
+            then
+                exit 1
+            fi
+  deploy:
+    <<: *garden-image
+    steps:
+      - checkout
+      - configure_kubectl_context_prod
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: Build and push the image to the production registry with garden
+          command: |
+            echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
+            garden publish --env=prod
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - test
+      - deploy
+     
