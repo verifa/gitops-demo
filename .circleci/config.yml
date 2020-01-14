@@ -6,7 +6,7 @@ version: 2.1
       - image: sahsu/docker-jsonlint:latest
   skaffold-image: &skaffold-image
     docker:
-      - image: addisonbair/skaffold:latest
+      - image: gcr.io/k8s-skaffold/skaffold:latest
 
 jobs:
   test:
