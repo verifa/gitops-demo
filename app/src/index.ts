@@ -135,6 +135,8 @@ const init = () => {
         .append("g")
         .attr("id", "pipeline");
 
+    let pipelineStatus: PipelineStatus | undefined = undefined;
+
     loadConfig().then(config => {
         let state = initialState(config.initialAlive);
 
@@ -169,8 +171,9 @@ const init = () => {
         const pipelineUpdateTimeout = 2000;
 
         const updatePipeline = () => {
-            getPipelineData().then((data: PipelineStatus) => {
+            getPipelineData(pipelineStatus).then((data: PipelineStatus) => {
                 updatePipelineVis(data);
+                pipelineStatus = data;
                 setTimeout(updatePipeline, pipelineUpdateTimeout);
             });
         };
