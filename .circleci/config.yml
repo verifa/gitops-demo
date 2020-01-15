@@ -1,0 +1,43 @@
+version: 2.1
+
+.references:
+  jsonlint-image: &jsonlint-image
+    docker:
+      - image: sahsu/docker-jsonlint:latest
+  skaffold-image: &skaffold-image
+    docker:
+      - image: gcr.io/k8s-skaffold/skaffold:latest
+
+jobs:
+  test:
+    <<: *jsonlint-image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: jsonlint
+          command: |
+            jsonlint -q config_service/data.json > jsonlint-result.txt
+            if grep "Error" jsonlint-result.txt ;
+            then
+                exit 1
+            fi
+  deploy:
+    <<: *skaffold-image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 18.06.0-ce
+      - run:
+          name: Build and push the image to the production registry with skaffold
+          command: |
+            echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
+            skaffold build --profile=production
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - test
+      - deploy
+     
