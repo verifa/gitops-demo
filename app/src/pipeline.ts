@@ -204,79 +204,76 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
     const dormantTransparency = 0.2;
 
-    d3.select("#pipeline")
+    const pipeline = d3
+        .select("#pipeline")
         .selectAll("g")
-        .data(formattedData)
-        .join(
-            enter => {
-                enter
-                    .append("g")
-                    .filter((_, i) => i < formattedData.length - 1)
-                    .append("line")
-                    .attr("x1", 0)
-                    .attr("y1", circleRadius / 2)
-                    .attr(
-                        "x2",
-                        (pipelineWidth - circleRadius * 2) /
-                            (formattedData.length - 1)
-                    )
-                    .attr("y2", circleRadius / 2)
-                    .attr("stroke", d => colourMap.get(d.status)!)
-                    .attr("stroke-width", 25);
+        .data(formattedData);
 
-                enter
-                    .selectAll("g")
-                    .attr(
-                        "transform",
-                        (_, i) =>
-                            `translate(${(i / (formattedData.length - 1)) *
-                                (pipelineWidth - circleRadius * 2) +
-                                circleRadius}, ${circleRadius / 2})`
-                    )
-                    .append("circle")
-                    .attr("fill", "#262e41")
-                    .attr("r", circleRadius)
-                    .attr("cy", 30);
-
-                enter
-                    .selectAll("g")
-                    .attr(
-                        "transform",
-                        (_, i) =>
-                            `translate(${(i / (formattedData.length - 1)) *
-                                (pipelineWidth - circleRadius * 2) +
-                                circleRadius}, ${circleRadius / 2})`
-                    )
-                    .append("circle")
-                    .attr("fill", (d: any) => colourMap.get(d.status)!)
-                    .attr("opacity", (d: any) =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
-                    .attr("r", circleRadius)
-                    .attr("cy", 30);
-
-                enter
-                    .selectAll("g")
-                    .append("text")
-                    .attr("dy", 0)
-                    .attr("y", 20)
-                    .attr("font-size", "16pt")
-                    .attr("text-anchor", "middle")
-                    .attr("dominant-baseline", "middle")
-                    .attr("opacity", (d: any) =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
-                    .text((d: any) => d.label)
-                    .call(wrap, wrapWidth);
-
-                return enter;
-            },
-            update =>
-                update
-                    .select("circle")
-                    .attr("fill", d => colourMap.get(d.status)!)
-                    .attr("opacity", d =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
+    pipeline
+        .select("circle")
+        .attr("fill", d => colourMap.get(d.status)!)
+        .attr("opacity", d =>
+            d.status == "dormant" ? dormantTransparency : 1
         );
+
+    const pipelineEnter = pipeline.enter();
+
+    pipelineEnter
+        .append("g")
+        .filter((_, i) => i < formattedData.length - 1)
+        .append("line")
+        .attr("x1", 0)
+        .attr("y1", circleRadius / 2)
+        .attr(
+            "x2",
+            (pipelineWidth - circleRadius * 2) / (formattedData.length - 1)
+        )
+        .attr("y2", circleRadius / 2)
+        .attr("stroke", d => colourMap.get(d.status)!)
+        .attr("stroke-width", 25);
+
+    pipelineEnter
+        .selectAll("g")
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
+        .append("circle")
+        .attr("fill", "#262e41")
+        .attr("r", circleRadius)
+        .attr("cy", 30);
+
+    pipelineEnter
+        .selectAll("g")
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
+        .append("circle")
+        .attr("fill", (d: any) => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        )
+        .attr("r", circleRadius)
+        .attr("cy", 30);
+
+    pipelineEnter
+        .selectAll("g")
+        .append("text")
+        .attr("dy", 0)
+        .attr("y", 20)
+        .attr("font-size", "16pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        )
+        .text((d: any) => d.label)
+        .call(wrap, wrapWidth);
 };
