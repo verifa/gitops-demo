@@ -34,7 +34,13 @@ export interface PipelineStatus {
 }
 
 const getLatestCommit = async (url: string): Promise<GitCommit> => {
-    const response = await axios.get(`${url}/commits`);
+    const branch = "fix/d3-error";
+
+    const response = await axios.get(`${url}/commits`, {
+        params: {
+            branch: branch
+        }
+    });
     const latestCommit = response.data[0];
     return {
         hash: latestCommit.sha,
