@@ -184,7 +184,7 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         { label: "Infra repo commit", status: data.infraCommit }
     ];
 
-    const pipelineWidth = 500;
+    const pipelineWidth = 1000;
     const circleRadius = 60;
 
     const wrapWidth = 100;
@@ -195,6 +195,8 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         ["dormant", "grey"]
     ]);
 
+    const dormantTransparency = 0.2;
+
     d3.select("#pipeline")
         .selectAll("g")
         .data(formattedData)
@@ -202,14 +204,47 @@ export const updatePipelineVis = (data: PipelineStatus) => {
             enter => {
                 enter
                     .append("g")
+                    .filter((_, i) => i < formattedData.length - 1)
+                    .append("line")
+                    .attr("x1", 0)
+                    .attr("y1", circleRadius / 2)
+                    .attr(
+                        "x2",
+                        (pipelineWidth - circleRadius * 2) /
+                            (formattedData.length - 1)
+                    )
+                    .attr("y2", circleRadius / 2)
+                    .attr("stroke", d => colourMap.get(d.status)!)
+                    .attr("stroke-width", 25);
+
+                enter
+                    .selectAll("g")
                     .attr(
                         "transform",
                         (_, i) =>
-                            `translate(${(i / formattedData.length) *
-                                pipelineWidth}, ${circleRadius / 2})`
+                            `translate(${(i / (formattedData.length - 1)) *
+                                (pipelineWidth - circleRadius * 2) +
+                                circleRadius}, ${circleRadius / 2})`
                     )
                     .append("circle")
-                    .attr("fill", d => colourMap.get(d.status)!)
+                    .attr("fill", "#262e41")
+                    .attr("r", circleRadius)
+                    .attr("cy", 30);
+
+                enter
+                    .selectAll("g")
+                    .attr(
+                        "transform",
+                        (_, i) =>
+                            `translate(${(i / (formattedData.length - 1)) *
+                                (pipelineWidth - circleRadius * 2) +
+                                circleRadius}, ${circleRadius / 2})`
+                    )
+                    .append("circle")
+                    .attr("fill", (d: any) => colourMap.get(d.status)!)
+                    .attr("opacity", (d: any) =>
+                        d.status == "dormant" ? dormantTransparency : 1
+                    )
                     .attr("r", circleRadius)
                     .attr("cy", 30);
 
@@ -221,6 +256,9 @@ export const updatePipelineVis = (data: PipelineStatus) => {
                     .attr("font-size", "16pt")
                     .attr("text-anchor", "middle")
                     .attr("dominant-baseline", "middle")
+                    .attr("opacity", (d: any) =>
+                        d.status == "dormant" ? dormantTransparency : 1
+                    )
                     .text((d: any) => d.label)
                     .call(wrap, wrapWidth);
 
@@ -230,5 +268,8 @@ export const updatePipelineVis = (data: PipelineStatus) => {
                 update
                     .select("circle")
                     .attr("fill", d => colourMap.get(d.status)!)
+                    .attr("opacity", d =>
+                        d.status == "dormant" ? dormantTransparency : 1
+                    )
         );
 };

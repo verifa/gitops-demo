@@ -82,23 +82,6 @@ const render = (state: number[][], config: Config) => {
 };
 
 const setTimer = (count: number) => {
-    // d3.select("#countDown")
-    //     .datum(count)
-    //     .text(d => d.toString())
-    //     .transition()
-    //     .duration(500)
-    //     .tween(
-    //         "attr.opacity",
-    //         () =>
-    //             function setter(t: number) {
-    //                 // @ts-ignore
-    //                 this.setAttribute(
-    //                     "fill-opacity",
-    //                     1 - Math.sin(t * Math.PI)
-    //                 );
-    //             }
-    //     );
-
     d3.select("#visRoot")
         .select("svg")
         .transition()
@@ -148,6 +131,7 @@ const init = () => {
 
     d3.select("#topPanel")
         .select("svg")
+        .attr("width", visWidth)
         .append("g")
         .attr("id", "pipeline");
 
@@ -182,7 +166,7 @@ const init = () => {
 
         setTimeout(checkShouldRefresh, refreshCheckTimeout);
 
-        const pipelineUpdateTimeout = 1000;
+        const pipelineUpdateTimeout = 2000;
 
         const updatePipeline = () => {
             getPipelineData().then((data: PipelineStatus) => {
