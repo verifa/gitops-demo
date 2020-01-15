@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: gitops-demo
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: docker.io/benmarsden/gol-frontend-prod
+        ports:
+          - name: frontend
+            containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: frontend
+  name: frontend
+  namespace: gitops-demo
+spec:
+  selector:
+    app: frontend
+  ports:
+  - name: frontend
+    port: 8000
+    targetPort: 80

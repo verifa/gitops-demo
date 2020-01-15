@@ -1,0 +1,39 @@
+apiVersion: skaffold/v1beta2
+kind: Config
+build:  
+    artifacts:  
+      - image: benmarsden/gol-backend-prod
+        context: config_service
+        docker:      
+          dockerfile: ./Dockerfile
+profiles:
+  - name: test
+    ## This profile runs unit tests and builds the image
+    build:
+      local:
+        push: false
+      artifacts:
+      - image: benmarsden/gol-backend-prod
+        context: config_service
+        docker:
+          dockerfile: ./Dockerfile
+      - image: benmarsden/gol-frontend-prod
+        context: app
+        docker:
+          dockerfile: ./Dockerfile
+    deploy: {} # don't deploy in test stage
+  - name: production
+    ## This profile pushes the image
+    build:
+      local: 
+        push: true
+      artifacts:
+      - image: benmarsden/gol-backend-prod
+        context: config_service
+        docker:
+          dockerfile: ./Dockerfile
+      - image: benmarsden/gol-frontend-prod
+        context: app
+        docker:
+          dockerfile: ./Dockerfile
+    deploy: {} # no-op, flux will take care of this
