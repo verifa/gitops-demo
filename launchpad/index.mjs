@@ -20,7 +20,9 @@ const gridFromKeys = keys => {
 };
 
 const writeConfig = keys => {
-    const config = {
+    const config = JSON.parse(fs.readFileSync(outputFileName, "utf8"));
+
+    Object.assign(config, {
         config: {
             colours: {
                 alive: aliveColour,
@@ -28,7 +30,7 @@ const writeConfig = keys => {
             },
             initialAlive: gridFromKeys(keys)
         }
-    };
+    });
 
     writeFile(outputFileName, JSON.stringify(config, null, 4), err => {
         if (err) {

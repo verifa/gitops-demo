@@ -171,11 +171,13 @@ const init = () => {
         const pipelineUpdateTimeout = 2000;
 
         const updatePipeline = () => {
-            getPipelineData(pipelineStatus).then((data: PipelineStatus) => {
-                updatePipelineVis(data);
-                pipelineStatus = data;
-                setTimeout(updatePipeline, pipelineUpdateTimeout);
-            });
+            getPipelineData(config, pipelineStatus).then(
+                (data: PipelineStatus) => {
+                    updatePipelineVis(data);
+                    pipelineStatus = data;
+                    setTimeout(updatePipeline, pipelineUpdateTimeout);
+                }
+            );
         };
 
         updatePipeline();

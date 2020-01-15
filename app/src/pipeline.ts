@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import axios from "axios";
+import { Config } from "./config";
 
 type StepStatus = "done" | "notDone" | "dormant";
 
@@ -49,16 +50,17 @@ const getLatestCommit = async (
     };
 };
 
-const getAppCommit = async () => {
+const getAppCommit = async (branch: string) => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo",
-        "fix/d3-error"
+        branch
     );
 };
 
-const getInfraCommit = async () => {
+const getInfraCommit = async (branch: string) => {
     return getLatestCommit(
-        "https://api.github.com/repos/verifa/gitops-demo-infra"
+        "https://api.github.com/repos/verifa/gitops-demo-infra",
+        branch
     );
 };
 
@@ -81,14 +83,15 @@ const getBuild = async (): Promise<Build> => {
 };
 
 export const getPipelineData = async (
+    config: Config,
     lastState?: PipelineStatus
 ): Promise<PipelineStatus> => {
     // TODO: Make branch to inspect configurable?
 
     if (lastState === undefined) {
         const [appCommit, infraCommit, build] = await Promise.all([
-            getAppCommit(),
-            getInfraCommit(),
+            getAppCommit(config.appBranch),
+            getInfraCommit(config.infraBranch),
             getBuild()
         ]);
 
@@ -99,10 +102,6 @@ export const getPipelineData = async (
                 infraCommit: "dormant"
             },
             appRepo: {
-                // starting: {
-                //     hash: "fe9d2c0f389d44f3cf1e3d480c9f11d2e77e75f0",
-                //     message: "fake"
-                // },
                 starting: appCommit,
                 current: appCommit
             },
@@ -120,7 +119,7 @@ export const getPipelineData = async (
     const newState = Object.assign({}, lastState);
 
     if (newState.steps.appCommit != "done") {
-        const latestCommit = await getAppCommit();
+        const latestCommit = await getAppCommit(config.appBranch);
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
             console.log(`Found new app commit: ${latestCommit.hash}`);
 
@@ -148,7 +147,7 @@ export const getPipelineData = async (
             newState.steps.ci == "done" &&
             newState.steps.infraCommit != "done"
         ) {
-            const latestInfra = await getInfraCommit();
+            const latestInfra = await getInfraCommit(config.infraBranch);
 
             if (latestInfra.hash !== newState.infraRepo.starting.hash) {
                 newState.steps.infraCommit = "done";

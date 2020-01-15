@@ -7,6 +7,8 @@ export interface Config {
     };
     initialAlive: number[][];
     connected: boolean;
+    appBranch: string;
+    infraBranch: string;
 }
 
 const randomState = () => {
@@ -36,6 +38,8 @@ export const loadConfig = async (): Promise<Config> => {
             dead: "#fefefe"
         },
         initialAlive: randomState(),
+        infraBranch: "master",
+        appBranch: "master",
         connected: false
     };
 
