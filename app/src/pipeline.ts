@@ -14,9 +14,11 @@ interface Build {
 }
 
 export interface PipelineStatus {
-    appCommit: StepStatus;
-    ci: StepStatus;
-    infraCommit: StepStatus;
+    steps: {
+        appCommit: StepStatus;
+        ci: StepStatus;
+        infraCommit: StepStatus;
+    };
     appRepo: {
         starting: GitCommit;
         current: GitCommit;
@@ -81,9 +83,11 @@ export const getPipelineData = async (
         ]);
 
         return {
-            appCommit: "dormant",
-            ci: "dormant",
-            infraCommit: "dormant",
+            steps: {
+                appCommit: "dormant",
+                ci: "dormant",
+                infraCommit: "dormant"
+            },
             appRepo: {
                 starting: appCommit,
                 current: appCommit
@@ -101,34 +105,37 @@ export const getPipelineData = async (
 
     const newState = Object.assign({}, lastState);
 
-    if (newState.appCommit != "done") {
+    if (newState.steps.appCommit != "done") {
         const latestCommit = await getAppCommit();
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
-            newState.appCommit = "done";
-            newState.infraCommit = "notDone";
-            newState.ci = "notDone";
+            newState.steps.appCommit = "done";
+            newState.steps.infraCommit = "notDone";
+            newState.steps.ci = "notDone";
 
             newState.appRepo.current = latestCommit;
         }
     }
 
-    if (newState.appCommit != "dormant") {
-        if (newState.ci != "done") {
+    if (newState.steps.appCommit != "dormant") {
+        if (newState.steps.ci != "done") {
             const latestBuild = await getBuild();
 
             if (
                 latestBuild.id != newState.ciBuild.current.id &&
                 latestBuild.status == "success"
             ) {
-                newState.ci = "done";
+                newState.steps.ci = "done";
             }
         }
 
-        if (newState.ci == "done" && newState.infraCommit != "done") {
+        if (
+            newState.steps.ci == "done" &&
+            newState.steps.infraCommit != "done"
+        ) {
             const latestInfra = await getInfraCommit();
 
             if (latestInfra.hash !== newState.infraRepo.starting.hash) {
-                newState.infraCommit = "done";
+                newState.steps.infraCommit = "done";
 
                 newState.infraRepo.current = latestInfra;
             }
@@ -179,9 +186,9 @@ const wrap = (text: any, width: number) => {
 
 export const updatePipelineVis = (data: PipelineStatus) => {
     const formattedData = [
-        { label: "App repo commit", status: data.appCommit },
-        { label: "CI build", status: data.ci },
-        { label: "Infra repo commit", status: data.infraCommit }
+        { label: "App repo commit", status: data.steps.appCommit },
+        { label: "CI build", status: data.steps.ci },
+        { label: "Infra repo commit", status: data.steps.infraCommit }
     ];
 
     const pipelineWidth = 1000;
