@@ -1,5 +1,0 @@
-kind: Module
-name: backend
-description: Backend service container
-type: kubernetes
-files: [config_service.yml]

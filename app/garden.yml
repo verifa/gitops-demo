@@ -1,5 +1,0 @@
-kind: Module
-name: app
-description: container for running game of life
-type: kubernetes
-files: [app.yml]
