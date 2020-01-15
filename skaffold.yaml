@@ -14,3 +14,15 @@ deploy:
       - ./ingress/ingress.yml
       - ./ingress/ingress2.yml
       - ./ingress.yml
+profiles:
+  - name: production
+    ## This profile pushes the image
+    build:
+      local: 
+        push: true
+      artifacts:
+      - image: docker.io/benmarsden/gol-backend-prod
+        context: config_service
+      - image: docker.io/benmarsden/gol-backend-prod
+        context: app
+    deploy: {} #flux will take care of this
