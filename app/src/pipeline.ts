@@ -99,6 +99,10 @@ export const getPipelineData = async (
                 infraCommit: "dormant"
             },
             appRepo: {
+                // starting: {
+                //     hash: "fe9d2c0f389d44f3cf1e3d480c9f11d2e77e75f0",
+                //     message: "fake"
+                // },
                 starting: appCommit,
                 current: appCommit
             },
@@ -118,6 +122,8 @@ export const getPipelineData = async (
     if (newState.steps.appCommit != "done") {
         const latestCommit = await getAppCommit();
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
+            console.log(`Found new app commit: ${latestCommit.hash}`);
+
             newState.steps.appCommit = "done";
             newState.steps.infraCommit = "notDone";
             newState.steps.ci = "notDone";
@@ -219,13 +225,6 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         .selectAll("g")
         .data(formattedData);
 
-    pipeline
-        .select("circle")
-        .attr("fill", d => colourMap.get(d.status)!)
-        .attr("opacity", d =>
-            d.status == "dormant" ? dormantTransparency : 1
-        );
-
     const pipelineEnter = pipeline.enter();
 
     pipelineEnter
@@ -266,6 +265,7 @@ export const updatePipelineVis = (data: PipelineStatus) => {
                     circleRadius}, ${circleRadius / 2})`
         )
         .append("circle")
+        .classed("statusCircle", true)
         .attr("fill", (d: any) => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
@@ -286,4 +286,19 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         )
         .text((d: any) => d.label)
         .call(wrap, wrapWidth);
+
+    pipeline
+        .select(".statusCircle")
+        .attr("fill", d => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
+
+    pipeline
+        .select("text")
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
+
+    pipeline.select("line").attr("stroke", d => colourMap.get(d.status)!);
 };
