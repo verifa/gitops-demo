@@ -11,9 +11,9 @@ deploy:
     manifests:
       - ./app/app.yml
       - ./config_service/config_service.yml
-      - ./ingress/ingress.yml
-      - ./ingress/ingress2.yml
-      - ./ingress.yml
+      - ./ingress-controller/controller.yml
+      - ./ingress-controller/controller-service.yml
+      - ./application-ingress.yml
 profiles:
   - name: production
     ## This profile pushes the image
