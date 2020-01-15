@@ -33,12 +33,13 @@ export interface PipelineStatus {
     };
 }
 
-const getLatestCommit = async (url: string): Promise<GitCommit> => {
-    const branch = "fix/d3-error";
-
+const getLatestCommit = async (
+    url: string,
+    branch = "master"
+): Promise<GitCommit> => {
     const response = await axios.get(`${url}/commits`, {
         params: {
-            branch: branch
+            sha: branch
         }
     });
     const latestCommit = response.data[0];
@@ -49,7 +50,10 @@ const getLatestCommit = async (url: string): Promise<GitCommit> => {
 };
 
 const getAppCommit = async () => {
-    return getLatestCommit("https://api.github.com/repos/verifa/gitops-demo");
+    return getLatestCommit(
+        "https://api.github.com/repos/verifa/gitops-demo",
+        "fix/d3-error"
+    );
 };
 
 const getInfraCommit = async () => {
