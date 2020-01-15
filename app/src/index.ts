@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { loadConfig, Config } from "./config";
-import { updatePipelineVis, getPipelineData } from "./pipeline";
+import { updatePipelineVis, getPipelineData, PipelineStatus } from "./pipeline";
 
 const nRows = 40;
 const nCols = 40;
@@ -185,13 +185,13 @@ const init = () => {
         const pipelineUpdateTimeout = 1000;
 
         const updatePipeline = () => {
-            const data = getPipelineData();
-            updatePipelineVis(data);
-
-            setTimeout(updatePipeline, pipelineUpdateTimeout);
+            getPipelineData().then((data: PipelineStatus) => {
+                updatePipelineVis(data);
+                setTimeout(updatePipeline, pipelineUpdateTimeout);
+            });
         };
 
-        setTimeout(updatePipeline, pipelineUpdateTimeout);
+        updatePipeline();
 
         // Initial render
         render(state, config);

@@ -1,25 +1,144 @@
 import * as d3 from "d3";
+import axios from "axios";
 
-interface PipelineStatus {
-    appCommit: boolean;
-    ciFinished: boolean;
-    infraCommit: boolean;
+type StepStatus = "done" | "notDone" | "dormant";
+
+interface GitCommit {
+    hash: string;
+    message: string;
 }
 
-export const getPipelineData = () => {
-    // TODO: Get all data we need to determine pipeline status
-    // TODO: Get commit from app repo
-    // TODO: Get CI status from circle CI
-    // TODO: Get infra repo commit
+interface Build {
+    id: number;
+    status: string;
+}
 
+export interface PipelineStatus {
+    appCommit: StepStatus;
+    ci: StepStatus;
+    infraCommit: StepStatus;
+    appRepo: {
+        starting: GitCommit;
+        current: GitCommit;
+    };
+    infraRepo: {
+        starting: GitCommit;
+        current: GitCommit;
+    };
+    ciBuild: {
+        starting: Build;
+        current: Build;
+    };
+}
+
+const getLatestCommit = async (url: string): Promise<GitCommit> => {
+    const response = await axios.get(`${url}/commits`);
+    const latestCommit = response.data[0];
     return {
-        appCommit: Math.random() < 0.5 ? true : false,
-        ciFinished: true,
-        infraCommit: false
+        hash: latestCommit.sha,
+        message: latestCommit.message
     };
 };
 
-function wrap(text: any, width: any) {
+const getAppCommit = async () => {
+    return getLatestCommit("https://api.github.com/repos/verifa/gitops-demo");
+};
+
+const getInfraCommit = async () => {
+    return getLatestCommit(
+        "https://api.github.com/repos/verifa/gitops-demo-infra"
+    );
+};
+
+const getBuild = async (): Promise<Build> => {
+    const response = await axios.get(
+        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo?limit=1"
+    );
+
+    const lastBuild = response.data[0];
+
+    const status = lastBuild["status"];
+    const buildNum = lastBuild["build_num"];
+
+    // TODO: What happens if the build is running but not complete?
+
+    return {
+        id: buildNum,
+        status: status
+    };
+};
+
+export const getPipelineData = async (
+    lastState?: PipelineStatus
+): Promise<PipelineStatus> => {
+    // TODO: Make branch to inspect configurable?
+
+    if (lastState === undefined) {
+        const [appCommit, infraCommit, build] = await Promise.all([
+            getAppCommit(),
+            getInfraCommit(),
+            getBuild()
+        ]);
+
+        return {
+            appCommit: "dormant",
+            ci: "dormant",
+            infraCommit: "dormant",
+            appRepo: {
+                starting: appCommit,
+                current: appCommit
+            },
+            infraRepo: {
+                starting: infraCommit,
+                current: infraCommit
+            },
+            ciBuild: {
+                starting: build,
+                current: build
+            }
+        };
+    }
+
+    const newState = Object.assign({}, lastState);
+
+    if (newState.appCommit != "done") {
+        const latestCommit = await getAppCommit();
+        if (latestCommit.hash !== newState.appRepo.starting.hash) {
+            newState.appCommit = "done";
+            newState.infraCommit = "notDone";
+            newState.ci = "notDone";
+
+            newState.appRepo.current = latestCommit;
+        }
+    }
+
+    if (newState.appCommit != "dormant") {
+        if (newState.ci != "done") {
+            const latestBuild = await getBuild();
+
+            if (
+                latestBuild.id != newState.ciBuild.current.id &&
+                latestBuild.status == "success"
+            ) {
+                newState.ci = "done";
+            }
+        }
+
+        if (newState.ci == "done" && newState.infraCommit != "done") {
+            const latestInfra = await getInfraCommit();
+
+            if (latestInfra.hash !== newState.infraRepo.starting.hash) {
+                newState.infraCommit = "done";
+
+                newState.infraRepo.current = latestInfra;
+            }
+        }
+    }
+
+    return newState;
+};
+
+const wrap = (text: any, width: number) => {
     text.each(function() {
         // @ts-ignore
         let text = d3.select(this),
@@ -56,12 +175,12 @@ function wrap(text: any, width: any) {
             }
         }
     });
-}
+};
 
 export const updatePipelineVis = (data: PipelineStatus) => {
     const formattedData = [
         { label: "App repo commit", status: data.appCommit },
-        { label: "CI build", status: data.ciFinished },
+        { label: "CI build", status: data.ci },
         { label: "Infra repo commit", status: data.infraCommit }
     ];
 
@@ -69,6 +188,12 @@ export const updatePipelineVis = (data: PipelineStatus) => {
     const circleRadius = 60;
 
     const wrapWidth = 100;
+
+    const colourMap = new Map<StepStatus, string>([
+        ["done", "green"],
+        ["notDone", "red"],
+        ["dormant", "grey"]
+    ]);
 
     d3.select("#pipeline")
         .selectAll("g")
@@ -84,7 +209,7 @@ export const updatePipelineVis = (data: PipelineStatus) => {
                                 pipelineWidth}, ${circleRadius / 2})`
                     )
                     .append("circle")
-                    .attr("fill", d => (d.status ? "red" : "green"))
+                    .attr("fill", d => colourMap.get(d.status)!)
                     .attr("r", circleRadius)
                     .attr("cy", 30);
 
@@ -101,10 +226,9 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
                 return enter;
             },
-
             update =>
                 update
                     .select("circle")
-                    .attr("fill", d => (d.status ? "red" : "green"))
+                    .attr("fill", d => colourMap.get(d.status)!)
         );
 };
