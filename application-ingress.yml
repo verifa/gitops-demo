@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: gitops-demo-ingress
+  namespace: gitops-demo
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /config
+            backend:
+              serviceName: backend
+              servicePort: 3000
+          - path: "/"
+            backend:
+              serviceName: frontend
+              servicePort: 8000

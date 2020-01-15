@@ -2,12 +2,14 @@
 
 body {
     font-family: "Roboto Slab", serif;
+    background-color: #262e41;
 }
 
 #topPanel {
     text-align: center;
+    margin-bottom: 50px;
     margin-top: 10px;
-    margin-bottom: 10px;
+    flex: 0 0 auto;
 }
 
 h1 {
@@ -16,10 +18,7 @@ h1 {
 
 #visRoot {
     text-align: center;
-    margin-left: auto;
-    margin-right: auto;
-    width: 1000px;
-    display: block;
+    flex: 0 0 auto;
 }
 
 .cell {
@@ -30,4 +29,13 @@ h1 {
 svg {
     overflow: visible;
     box-shadow: 0px -0px 10000px transparent;
+}
+
+#container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 1200px;
 }

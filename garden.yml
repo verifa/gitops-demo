@@ -20,4 +20,3 @@ providers:
     deploymentRegistry:
       hostname: docker.io
       namespace: benmarsden
-     
