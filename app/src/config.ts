@@ -5,6 +5,8 @@ export interface Config {
         alive: string;
         dead: string;
     };
+    initialAlive: number[][];
+    connected: boolean;
 }
 
 const randomState = () => {
@@ -26,7 +28,7 @@ const randomState = () => {
     return array;
 };
 
-export const loadConfig = async () => {
+export const loadConfig = async (): Promise<Config> => {
     // Defaults
     let config = {
         colours: {
