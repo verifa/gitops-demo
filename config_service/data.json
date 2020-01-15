@@ -3,6 +3,7 @@
         "colours": {
             "alive": "#262f42",
             "dead": "#fefefe"
-        }
+        },
+        "initialAlive": []
     }
 }
