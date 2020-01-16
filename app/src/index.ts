@@ -168,13 +168,20 @@ const init = () => {
 
         setTimeout(checkShouldRefresh, refreshCheckTimeout);
 
-        const pipelineUpdateTimeout = 2000;
+        const slowPipelineUpdate = 1000;
+        const fastPipelineUpdate = 500;
 
         const updatePipeline = () => {
             getPipelineData(config, pipelineStatus).then(
                 (data: PipelineStatus) => {
                     updatePipelineVis(data);
                     pipelineStatus = data;
+
+                    const pipelineUpdateTimeout =
+                        pipelineStatus.steps.appCommit == "dormant"
+                            ? slowPipelineUpdate
+                            : fastPipelineUpdate;
+
                     setTimeout(updatePipeline, pipelineUpdateTimeout);
                 }
             );
