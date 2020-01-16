@@ -22,6 +22,7 @@ jobs:
             - run:
                   name: build
                   command: |
+                      apk add --update nodejs
                       npm config set unsafe-perm true
                       npm install -g yarn
                       yarn install --dev
