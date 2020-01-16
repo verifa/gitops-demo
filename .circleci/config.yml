@@ -24,6 +24,7 @@ jobs:
             - run:
                   name: build
                   command: |
+                      npm config set unsafe-perm true
                       npm install -g yarn
                       yarn install --dev
                       yarn build
