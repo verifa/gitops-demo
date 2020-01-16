@@ -24,6 +24,7 @@ jobs:
             - run:
                   name: build
                   command: |
+                      yarn install --dev
                       yarn build
 
     jsonlint:
@@ -51,6 +52,7 @@ jobs:
                   name: eslint
                   working_directory: app
                   command: |
+                      yarn install --dev
                       eslint **/*.ts
 
     deploy:
