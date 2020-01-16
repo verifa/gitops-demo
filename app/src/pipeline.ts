@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import axios from "axios";
+import { Config } from "./config";
 
 type StepStatus = "done" | "notDone" | "dormant";
 
@@ -33,8 +34,15 @@ export interface PipelineStatus {
     };
 }
 
-const getLatestCommit = async (url: string): Promise<GitCommit> => {
-    const response = await axios.get(`${url}/commits`);
+const getLatestCommit = async (
+    url: string,
+    branch = "master"
+): Promise<GitCommit> => {
+    const response = await axios.get(`${url}/commits`, {
+        params: {
+            sha: branch
+        }
+    });
     const latestCommit = response.data[0];
     return {
         hash: latestCommit.sha,
@@ -42,13 +50,17 @@ const getLatestCommit = async (url: string): Promise<GitCommit> => {
     };
 };
 
-const getAppCommit = async () => {
-    return getLatestCommit("https://api.github.com/repos/verifa/gitops-demo");
+const getAppCommit = async (branch: string) => {
+    return getLatestCommit(
+        "https://api.github.com/repos/verifa/gitops-demo",
+        branch
+    );
 };
 
-const getInfraCommit = async () => {
+const getInfraCommit = async (branch: string) => {
     return getLatestCommit(
-        "https://api.github.com/repos/verifa/gitops-demo-infra"
+        "https://api.github.com/repos/verifa/gitops-demo-infra",
+        branch
     );
 };
 
@@ -71,14 +83,15 @@ const getBuild = async (): Promise<Build> => {
 };
 
 export const getPipelineData = async (
+    config: Config,
     lastState?: PipelineStatus
 ): Promise<PipelineStatus> => {
     // TODO: Make branch to inspect configurable?
 
     if (lastState === undefined) {
         const [appCommit, infraCommit, build] = await Promise.all([
-            getAppCommit(),
-            getInfraCommit(),
+            getAppCommit(config.appBranch),
+            getInfraCommit(config.infraBranch),
             getBuild()
         ]);
 
@@ -106,8 +119,10 @@ export const getPipelineData = async (
     const newState = Object.assign({}, lastState);
 
     if (newState.steps.appCommit != "done") {
-        const latestCommit = await getAppCommit();
+        const latestCommit = await getAppCommit(config.appBranch);
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
+            console.log(`Found new app commit: ${latestCommit.hash}`);
+
             newState.steps.appCommit = "done";
             newState.steps.infraCommit = "notDone";
             newState.steps.ci = "notDone";
@@ -132,7 +147,7 @@ export const getPipelineData = async (
             newState.steps.ci == "done" &&
             newState.steps.infraCommit != "done"
         ) {
-            const latestInfra = await getInfraCommit();
+            const latestInfra = await getInfraCommit(config.infraBranch);
 
             if (latestInfra.hash !== newState.infraRepo.starting.hash) {
                 newState.steps.infraCommit = "done";
@@ -204,79 +219,85 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
     const dormantTransparency = 0.2;
 
-    d3.select("#pipeline")
+    const pipeline = d3
+        .select("#pipeline")
         .selectAll("g")
-        .data(formattedData)
-        .join(
-            enter => {
-                enter
-                    .append("g")
-                    .filter((_, i) => i < formattedData.length - 1)
-                    .append("line")
-                    .attr("x1", 0)
-                    .attr("y1", circleRadius / 2)
-                    .attr(
-                        "x2",
-                        (pipelineWidth - circleRadius * 2) /
-                            (formattedData.length - 1)
-                    )
-                    .attr("y2", circleRadius / 2)
-                    .attr("stroke", d => colourMap.get(d.status)!)
-                    .attr("stroke-width", 25);
+        .data(formattedData);
 
-                enter
-                    .selectAll("g")
-                    .attr(
-                        "transform",
-                        (_, i) =>
-                            `translate(${(i / (formattedData.length - 1)) *
-                                (pipelineWidth - circleRadius * 2) +
-                                circleRadius}, ${circleRadius / 2})`
-                    )
-                    .append("circle")
-                    .attr("fill", "#262e41")
-                    .attr("r", circleRadius)
-                    .attr("cy", 30);
+    const pipelineEnter = pipeline.enter();
 
-                enter
-                    .selectAll("g")
-                    .attr(
-                        "transform",
-                        (_, i) =>
-                            `translate(${(i / (formattedData.length - 1)) *
-                                (pipelineWidth - circleRadius * 2) +
-                                circleRadius}, ${circleRadius / 2})`
-                    )
-                    .append("circle")
-                    .attr("fill", (d: any) => colourMap.get(d.status)!)
-                    .attr("opacity", (d: any) =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
-                    .attr("r", circleRadius)
-                    .attr("cy", 30);
+    pipelineEnter
+        .append("g")
+        .filter((_, i) => i < formattedData.length - 1)
+        .append("line")
+        .attr("x1", 0)
+        .attr("y1", circleRadius / 2)
+        .attr(
+            "x2",
+            (pipelineWidth - circleRadius * 2) / (formattedData.length - 1)
+        )
+        .attr("y2", circleRadius / 2)
+        .attr("stroke", d => colourMap.get(d.status)!)
+        .attr("stroke-width", 25);
 
-                enter
-                    .selectAll("g")
-                    .append("text")
-                    .attr("dy", 0)
-                    .attr("y", 20)
-                    .attr("font-size", "16pt")
-                    .attr("text-anchor", "middle")
-                    .attr("dominant-baseline", "middle")
-                    .attr("opacity", (d: any) =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
-                    .text((d: any) => d.label)
-                    .call(wrap, wrapWidth);
+    pipelineEnter
+        .selectAll("g")
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
+        .append("circle")
+        .attr("fill", "#262e41")
+        .attr("r", circleRadius)
+        .attr("cy", 30);
 
-                return enter;
-            },
-            update =>
-                update
-                    .select("circle")
-                    .attr("fill", d => colourMap.get(d.status)!)
-                    .attr("opacity", d =>
-                        d.status == "dormant" ? dormantTransparency : 1
-                    )
+    pipelineEnter
+        .selectAll("g")
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
+        .append("circle")
+        .classed("statusCircle", true)
+        .attr("fill", (d: any) => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        )
+        .attr("r", circleRadius)
+        .attr("cy", 30);
+
+    pipelineEnter
+        .selectAll("g")
+        .append("text")
+        .attr("dy", 0)
+        .attr("y", 20)
+        .attr("font-size", "16pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        )
+        .text((d: any) => d.label)
+        .call(wrap, wrapWidth);
+
+    pipeline
+        .select(".statusCircle")
+        .attr("fill", d => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
         );
+
+    pipeline
+        .select("text")
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
+
+    pipeline.select("line").attr("stroke", d => colourMap.get(d.status)!);
 };
