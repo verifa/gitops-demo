@@ -53,6 +53,7 @@ jobs:
                   name: eslint
                   working_directory: app
                   command: |
+                      npm install -g yarn
                       yarn install --dev
                       eslint **/*.ts
 
