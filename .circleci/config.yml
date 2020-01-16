@@ -9,7 +9,7 @@ version: 2.1
             - image: gcr.io/k8s-skaffold/skaffold:latest
     typescript-image: &typescript-image
         docker:
-            - image: sandrokeil/typescript
+            - image: node:stretch-slim
 
 jobs:
     build:
@@ -22,9 +22,6 @@ jobs:
                   name: build
                   working_directory: app
                   command: |
-                      apk add --update nodejs npm
-                      npm config set unsafe-perm true
-                      npm install -g yarn
                       yarn install --dev
                       yarn build
 
@@ -53,9 +50,6 @@ jobs:
                   name: eslint
                   working_directory: app
                   command: |
-                      apk add --update nodejs npm
-                      npm config set unsafe-perm true
-                      npm install -g yarn
                       yarn install --dev
                       eslint **/*.ts
 
