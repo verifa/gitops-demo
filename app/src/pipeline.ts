@@ -152,12 +152,6 @@ export const getPipelineData = async (
 
             console.log("Got latest ci build");
 
-            if (status === "queued" || status === "running") {
-                status = "inProgress";
-            } else if (status === "failed") {
-                status = "done";
-            }
-
             if (latestBuild.id != newState.ciBuild.current.id) {
                 if (
                     latestBuild.status === "success" ||

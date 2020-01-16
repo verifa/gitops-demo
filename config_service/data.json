@@ -2,9 +2,15 @@
     "config": {
         "colours": {
             "alive": "#262f42",
-            "dead": "#fefefe"
+            "dead": "#8d98b2"
         },
-        "initialAlive": [],
+        "initialAlive": [
+            [0, 0],
+            [1, 1],
+            [1, 2],
+            [2, 0],
+            [2, 1]
+        ],
         "appBranch": "master",
         "infraBranch": "master"
     }

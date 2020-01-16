@@ -11,8 +11,8 @@ export interface Config {
     infraBranch: string;
 }
 
-const randomState = () => {
-    let array: number[][] = [];
+const randomState = (): number[][] => {
+    const array: number[][] = [];
 
     const pAlive = 0.25;
 
@@ -32,10 +32,10 @@ const randomState = () => {
 
 export const loadConfig = async (): Promise<Config> => {
     // Defaults
-    let config = {
+    const config = {
         colours: {
             alive: "#262f42",
-            dead: "#fefefe"
+            dead: "#8d98b2"
         },
         initialAlive: randomState(),
         infraBranch: "master",
@@ -43,7 +43,7 @@ export const loadConfig = async (): Promise<Config> => {
         connected: false
     };
 
-    const response = await axios
+    await axios
         .get("/config")
         .then(response => {
             Object.assign(config, response.data);
