@@ -1,43 +1,73 @@
 version: 2.1
 
 .references:
-  jsonlint-image: &jsonlint-image
-    docker:
-      - image: sahsu/docker-jsonlint:latest
-  skaffold-image: &skaffold-image
-    docker:
-      - image: gcr.io/k8s-skaffold/skaffold:latest
+    jsonlint-image: &jsonlint-image
+        docker:
+            - image: sahsu/docker-jsonlint:latest
+    eslint-image: &eslint-image
+        docker:
+            - image: cytopia/eslint:latest
+    skaffold-image: &skaffold-image
+        docker:
+            - image: gcr.io/k8s-skaffold/skaffold:latest
+    typescript-image: &typescript-image
+        docker:
+            - image: sandrokeil/typescript
 
 jobs:
-  test:
-    <<: *jsonlint-image
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: 18.06.0-ce
-      - run:
-          name: jsonlint
-          command: |
-            jsonlint -q config_service/data.json > jsonlint-result.txt
-            if grep "Error" jsonlint-result.txt ;
-            then
-                exit 1
-            fi
-  deploy:
-    <<: *skaffold-image
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: 18.06.0-ce
-      - run:
-          name: Build and push the image to the production registry with skaffold
-          command: |
-            echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
-            skaffold build --profile=production
+    build:
+        <<: *typescript-image
+        steps:
+            - checkout
+            - setup_remote_docker:
+                  version: 18.06.0-ce
+            - run:
+                  name: build
+                  command: |
+                      yarn build
+
+    jsonlint:
+        <<: *jsonlint-image
+        steps:
+            - checkout
+            - setup_remote_docker:
+                  version: 18.06.0-ce
+            - run:
+                  name: jsonlint
+                  command: |
+                      jsonlint -q config_service/data.json > jsonlint-result.txt
+                      if grep "Error" jsonlint-result.txt ;
+                      then
+                          exit 1
+                      fi
+
+    eslint:
+        <<: *eslint-image
+        steps:
+            - checkout
+            - setup_remote_docker:
+                  version: 18.06.0-ce
+            - run:
+                  name: eslint
+                  working_directory: app
+                  command: |
+                      eslint **/*.ts
+
+    deploy:
+        <<: *skaffold-image
+        steps:
+            - checkout
+            - setup_remote_docker:
+                  version: 18.06.0-ce
+            - run:
+                  name: Build and push the image to the production registry with skaffold
+                  command: |
+                      echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
+                      skaffold build --profile=production
 workflows:
-  version: 2
-  commit:
-    jobs:
-      - test
-      - deploy
-     
+    version: 2
+    commit:
+        jobs:
+            - jsonlint
+            - eslint
+            - deploy
