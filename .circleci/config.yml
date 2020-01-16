@@ -22,7 +22,7 @@ jobs:
                   name: build
                   working_directory: app
                   command: |
-                      apk add --update nodejs
+                      apk add --update nodejs npm
                       npm config set unsafe-perm true
                       npm install -g yarn
                       yarn install --dev
@@ -53,6 +53,7 @@ jobs:
                   name: eslint
                   working_directory: app
                   command: |
+                      apk add --update nodejs npm
                       npm config set unsafe-perm true
                       npm install -g yarn
                       yarn install --dev
