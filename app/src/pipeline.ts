@@ -41,7 +41,8 @@ const getLatestCommit = async (
 ): Promise<GitCommit> => {
     const response = await axios.get(`${url}/commits`, {
         params: {
-            sha: branch
+            sha: branch,
+            t: Date.now().toString()
         }
     });
     const latestCommit = response.data[0];
@@ -67,14 +68,20 @@ const getInfraCommit = async (branch: string): Promise<GitCommit> => {
 
 const getBuild = async (): Promise<Build> => {
     const response = await axios.get(
-        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo?limit=5"
+        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo",
+        {
+            params: {
+                limit: 5,
+                t: Date.now().toString()
+            }
+        }
     );
 
     let status = "";
     let buildNum = -1;
 
     for (const job of response.data) {
-        if (job["workflows"]["jobName"] === "deploy") {
+        if (job["workflows"]["job_name"] === "deploy") {
             status = job["status"];
             buildNum = job["build_num"];
             break;
@@ -260,13 +267,14 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
 
     const pipeline = d3
         .select("#pipeline")
-        .selectAll("g")
+        .selectAll(".step")
         .data(formattedData);
 
     const pipelineEnter = pipeline.enter();
 
     pipelineEnter
         .append("g")
+        .classed("step", true)
         .attr(
             "transform",
             (_, i) =>
@@ -284,10 +292,13 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
         )
         .attr("y2", circleRadius / 2)
         .attr("stroke", d => colourMap.get(d.status)!)
-        .attr("stroke-width", 25);
+        .attr("stroke-width", 25)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
 
     pipelineEnter
-        .selectAll("g")
+        .selectAll(".step")
         .append("circle")
         .classed("backingCircle", true)
         .attr("fill", "#262e41")
@@ -295,9 +306,10 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
         .attr("cy", 30);
 
     pipelineEnter
-        .selectAll("g")
+        .selectAll(".step")
         .append("circle")
         .classed("statusCircle", true)
+        .attr("stroke", (d: any) => colourMap.get(d.status)!)
         .attr("fill", (d: any) => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
@@ -306,7 +318,7 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
         .attr("cy", 30);
 
     pipelineEnter
-        .selectAll("g")
+        .selectAll(".step")
         .append("text")
         .attr("dy", 0)
         .attr("y", 20)
@@ -319,10 +331,10 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
         .text((d: any) => d.label)
         .call(wrap, wrapWidth);
 
-    // TODO: Remove triplicate circles
+    // TODO: Remove triplicate circles - super weird
 
     pipelineEnter
-        .selectAll("g")
+        .selectAll(".step")
         .append("text")
         .attr("dy", 0)
         .attr("y", circleRadius * 1.9)
@@ -335,8 +347,9 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
     pipeline
         .select(".statusCircle")
         .transition()
-        .duration(750)
+        .duration(1500)
         .attr("fill", d => colourMap.get(d.status)!)
+        .attr("stroke", d => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
         );
@@ -350,6 +363,9 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
     pipeline
         .select("line")
         .transition()
-        .duration(750)
-        .attr("stroke", d => colourMap.get(d.status)!);
+        .duration(1500)
+        .attr("stroke", d => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
 };

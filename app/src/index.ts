@@ -168,8 +168,8 @@ const init = (): void => {
 
         setTimeout(checkShouldRefresh, refreshCheckTimeout);
 
-        const slowPipelineUpdate = 1000;
-        const fastPipelineUpdate = 500;
+        const slowPipelineUpdate = 3000;
+        const fastPipelineUpdate = 1000;
 
         const updatePipeline = (): void => {
             getPipelineData(config, pipelineStatus).then(
