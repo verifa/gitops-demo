@@ -11,8 +11,8 @@ const cellSize = {
 
 const worker = new MyWorker();
 
-const initialState = (aliveIndices: number[][]) => {
-    let array: number[][] = [];
+const initialState = (aliveIndices: number[][]): number[][] => {
+    const array: number[][] = [];
 
     const configLowerCorner = {
         x: 15,
@@ -27,7 +27,7 @@ const initialState = (aliveIndices: number[][]) => {
         }
     }
 
-    for (let livingIndex of aliveIndices) {
+    for (const livingIndex of aliveIndices) {
         array[configLowerCorner.y - livingIndex[1]][
             configLowerCorner.x + livingIndex[0]
         ] = 1;
@@ -36,11 +36,11 @@ const initialState = (aliveIndices: number[][]) => {
     return array;
 };
 
-const render = (state: number[][], config: Config) => {
+const render = (state: number[][], config: Config): void => {
     const root = d3.select("#visRoot").select("svg");
     const transition = root.transition().duration(250);
 
-    let rows = root
+    const rows = root
         .selectAll(".row")
         .data(state)
         .join(enter =>
@@ -81,7 +81,7 @@ const render = (state: number[][], config: Config) => {
         );
 };
 
-const setTimer = (count: number) => {
+const setTimer = (): void => {
     d3.select("#visRoot")
         .select("svg")
         .transition()
@@ -89,7 +89,7 @@ const setTimer = (count: number) => {
         .tween(
             "attr.opacity",
             () =>
-                function setter(t: number) {
+                function setter(t: number): void {
                     // @ts-ignore
                     this.setAttribute(
                         "fill-opacity",
@@ -99,7 +99,7 @@ const setTimer = (count: number) => {
         );
 };
 
-const init = () => {
+const init = (): void => {
     const mainVis = d3
         .select("#visRoot")
         .append("svg")
@@ -138,9 +138,9 @@ const init = () => {
     let pipelineStatus: PipelineStatus | undefined = undefined;
 
     loadConfig().then(config => {
-        let state = initialState(config.initialAlive);
+        const state = initialState(config.initialAlive);
 
-        worker.onmessage = (ev: MessageEvent) => {
+        worker.onmessage = (ev: MessageEvent): void => {
             if (ev.data.type == "newState") {
                 console.log("Rendering a new state");
 
@@ -150,9 +150,9 @@ const init = () => {
 
         const refreshCheckTimeout = 2000;
 
-        const checkShouldRefresh = async () => {
+        const checkShouldRefresh = async (): Promise<void> => {
             // Never reload if config connection failed
-            if (!config.connected) return false;
+            if (!config.connected) return;
 
             // Check if config has changed
             loadConfig().then(latestConfig => {
@@ -171,7 +171,7 @@ const init = () => {
         const slowPipelineUpdate = 1000;
         const fastPipelineUpdate = 500;
 
-        const updatePipeline = () => {
+        const updatePipeline = (): void => {
             getPipelineData(config, pipelineStatus).then(
                 (data: PipelineStatus) => {
                     updatePipelineVis(data);
@@ -194,8 +194,8 @@ const init = () => {
 
         const initialDelay = 5000;
 
-        const countDown = (count: number, final: () => void | null) => {
-            setTimer(count / 1000);
+        const countDown = (count: number, final: () => void | null): void => {
+            setTimer();
 
             if (count > 0) {
                 count = count - 1000;
