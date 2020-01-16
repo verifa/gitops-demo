@@ -4,9 +4,6 @@ version: 2.1
     jsonlint-image: &jsonlint-image
         docker:
             - image: sahsu/docker-jsonlint:latest
-    eslint-image: &eslint-image
-        docker:
-            - image: cytopia/eslint:latest
     skaffold-image: &skaffold-image
         docker:
             - image: gcr.io/k8s-skaffold/skaffold:latest
@@ -17,6 +14,7 @@ version: 2.1
 jobs:
     build:
         <<: *typescript-image
+        working_directory: app
         steps:
             - checkout
             - setup_remote_docker:
@@ -45,7 +43,8 @@ jobs:
                       fi
 
     eslint:
-        <<: *eslint-image
+        <<: *typescript-image
+        working_directory: app
         steps:
             - checkout
             - setup_remote_docker:
@@ -54,6 +53,7 @@ jobs:
                   name: eslint
                   working_directory: app
                   command: |
+                      npm config set unsafe-perm true
                       npm install -g yarn
                       yarn install --dev
                       eslint **/*.ts
