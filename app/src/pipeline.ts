@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import axios from "axios";
-import { Config } from "./config";
 import { visWidth } from "./constants";
+import { Config } from "./config";
 
 type StepStatus = "done" | "notDone" | "dormant";
 
@@ -51,14 +51,14 @@ const getLatestCommit = async (
     };
 };
 
-const getAppCommit = async (branch: string) => {
+const getAppCommit = async (branch: string): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo",
         branch
     );
 };
 
-const getInfraCommit = async (branch: string) => {
+const getInfraCommit = async (branch: string): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo-infra",
         branch
@@ -76,6 +76,7 @@ const getBuild = async (): Promise<Build> => {
     const buildNum = lastBuild["build_num"];
 
     // TODO: What happens if the build is running but not complete?
+    // TODO: Handle the multiple jobs
 
     return {
         id: buildNum,
@@ -93,6 +94,8 @@ export const getPipelineData = async (
             getInfraCommit(config.infraBranch),
             getBuild()
         ]);
+
+        console.log("Initialising pipeline state");
 
         return {
             steps: {
@@ -119,6 +122,9 @@ export const getPipelineData = async (
 
     if (newState.steps.appCommit != "done") {
         const latestCommit = await getAppCommit(config.appBranch);
+
+        console.log("Got latest app commit");
+
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
             console.log(`Found new app commit: ${latestCommit.hash}`);
 
@@ -134,6 +140,8 @@ export const getPipelineData = async (
         if (newState.steps.ci != "done") {
             const latestBuild = await getBuild();
 
+            console.log("Got latest ci build");
+
             if (
                 latestBuild.id != newState.ciBuild.current.id &&
                 latestBuild.status == "success"
@@ -148,6 +156,8 @@ export const getPipelineData = async (
         ) {
             const latestInfra = await getInfraCommit(config.infraBranch);
 
+            console.log("Got latest infra commit");
+
             if (latestInfra.hash !== newState.infraRepo.starting.hash) {
                 newState.steps.infraCommit = "done";
 
@@ -159,20 +169,21 @@ export const getPipelineData = async (
     return newState;
 };
 
-const wrap = (text: any, width: number) => {
+const wrap = (text: any, width: number): void => {
     text.each(function() {
         // @ts-ignore
-        let text = d3.select(this),
+        const text = d3.select(this),
             words = text
                 .text()
                 .split(/\s+/)
                 .reverse(),
-            word,
-            line: string[] = [],
-            lineNumber = 0,
             lineHeight = 1.1, // ems
             y = text.attr("y"),
-            dy = parseFloat(text.attr("dy")),
+            dy = parseFloat(text.attr("dy"));
+
+        let word,
+            lineNumber = 0,
+            line: string[] = [],
             tspan = text
                 .text(null)
                 .append("tspan")
@@ -198,7 +209,7 @@ const wrap = (text: any, width: number) => {
     });
 };
 
-export const updatePipelineVis = (data: PipelineStatus) => {
+export const updatePipelineVis = (data: PipelineStatus): void => {
     const formattedData = [
         {
             label: "App repo commit",
@@ -306,6 +317,8 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
     pipeline
         .select(".statusCircle")
+        .transition()
+        .duration(750)
         .attr("fill", d => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
@@ -317,5 +330,9 @@ export const updatePipelineVis = (data: PipelineStatus) => {
             d.status == "dormant" ? dormantTransparency : 1
         );
 
-    pipeline.select("line").attr("stroke", d => colourMap.get(d.status)!);
+    pipeline
+        .select("line")
+        .transition()
+        .duration(750)
+        .attr("stroke", d => colourMap.get(d.status)!);
 };
