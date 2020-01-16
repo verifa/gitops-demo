@@ -51,7 +51,7 @@ jobs:
                   working_directory: app
                   command: |
                       yarn install --dev
-                      eslint **/*.ts
+                      yarn eslint **/*.ts
 
     deploy:
         <<: *skaffold-image
