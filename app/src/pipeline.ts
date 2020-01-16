@@ -3,7 +3,7 @@ import axios from "axios";
 import { visWidth } from "./constants";
 import { Config } from "./config";
 
-type StepStatus = "done" | "notDone" | "dormant";
+type StepStatus = "done" | "notDone" | "dormant" | "inProgress";
 
 interface GitCommit {
     hash: string;
@@ -67,16 +67,19 @@ const getInfraCommit = async (branch: string): Promise<GitCommit> => {
 
 const getBuild = async (): Promise<Build> => {
     const response = await axios.get(
-        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo?limit=1"
+        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo?limit=5"
     );
 
-    const lastBuild = response.data[0];
+    let status = "";
+    let buildNum = -1;
 
-    const status = lastBuild["status"];
-    const buildNum = lastBuild["build_num"];
-
-    // TODO: What happens if the build is running but not complete?
-    // TODO: Handle the multiple jobs
+    for (const job of response.data) {
+        if (job["workflows"]["jobName"] === "deploy") {
+            status = job["status"];
+            buildNum = job["build_num"];
+            break;
+        }
+    }
 
     return {
         id: buildNum,
@@ -142,11 +145,24 @@ export const getPipelineData = async (
 
             console.log("Got latest ci build");
 
-            if (
-                latestBuild.id != newState.ciBuild.current.id &&
-                latestBuild.status == "success"
-            ) {
-                newState.steps.ci = "done";
+            if (status === "queued" || status === "running") {
+                status = "inProgress";
+            } else if (status === "failed") {
+                status = "done";
+            }
+
+            if (latestBuild.id != newState.ciBuild.current.id) {
+                if (
+                    latestBuild.status === "success" ||
+                    latestBuild.status === "failed"
+                ) {
+                    newState.steps.ci = "done";
+                } else if (
+                    latestBuild.status === "queued" ||
+                    latestBuild.status === "running"
+                ) {
+                    newState.steps.ci = "inProgress";
+                }
             }
         }
 
@@ -236,7 +252,8 @@ export const updatePipelineVis = (data: PipelineStatus): void => {
     const colourMap = new Map<StepStatus, string>([
         ["done", "green"],
         ["notDone", "red"],
-        ["dormant", "grey"]
+        ["dormant", "grey"],
+        ["inProgress", "orange"]
     ]);
 
     const dormantTransparency = 0.2;
