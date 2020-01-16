@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import axios from "axios";
 import { Config } from "./config";
+import { visWidth } from "./constants";
 
 type StepStatus = "done" | "notDone" | "dormant";
 
@@ -86,8 +87,6 @@ export const getPipelineData = async (
     config: Config,
     lastState?: PipelineStatus
 ): Promise<PipelineStatus> => {
-    // TODO: Make branch to inspect configurable?
-
     if (lastState === undefined) {
         const [appCommit, infraCommit, build] = await Promise.all([
             getAppCommit(config.appBranch),
@@ -201,12 +200,24 @@ const wrap = (text: any, width: number) => {
 
 export const updatePipelineVis = (data: PipelineStatus) => {
     const formattedData = [
-        { label: "App repo commit", status: data.steps.appCommit },
-        { label: "CI build", status: data.steps.ci },
-        { label: "Infra repo commit", status: data.steps.infraCommit }
+        {
+            label: "App repo commit",
+            status: data.steps.appCommit,
+            message: data.appRepo.current.hash
+        },
+        {
+            label: "CI build",
+            status: data.steps.ci,
+            message: data.ciBuild.current.id.toString()
+        },
+        {
+            label: "Infra repo commit",
+            status: data.steps.infraCommit,
+            message: data.infraRepo.current.hash
+        }
     ];
 
-    const pipelineWidth = 1000;
+    const pipelineWidth = visWidth;
     const circleRadius = 60;
 
     const wrapWidth = 100;
@@ -228,6 +239,13 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
     pipelineEnter
         .append("g")
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
         .filter((_, i) => i < formattedData.length - 1)
         .append("line")
         .attr("x1", 0)
@@ -242,27 +260,14 @@ export const updatePipelineVis = (data: PipelineStatus) => {
 
     pipelineEnter
         .selectAll("g")
-        .attr(
-            "transform",
-            (_, i) =>
-                `translate(${(i / (formattedData.length - 1)) *
-                    (pipelineWidth - circleRadius * 2) +
-                    circleRadius}, ${circleRadius / 2})`
-        )
         .append("circle")
+        .classed("backingCircle", true)
         .attr("fill", "#262e41")
         .attr("r", circleRadius)
         .attr("cy", 30);
 
     pipelineEnter
         .selectAll("g")
-        .attr(
-            "transform",
-            (_, i) =>
-                `translate(${(i / (formattedData.length - 1)) *
-                    (pipelineWidth - circleRadius * 2) +
-                    circleRadius}, ${circleRadius / 2})`
-        )
         .append("circle")
         .classed("statusCircle", true)
         .attr("fill", (d: any) => colourMap.get(d.status)!)
@@ -285,6 +290,19 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         )
         .text((d: any) => d.label)
         .call(wrap, wrapWidth);
+
+    // TODO: Remove triplicate circles
+
+    pipelineEnter
+        .selectAll("g")
+        .append("text")
+        .attr("dy", 0)
+        .attr("y", circleRadius * 1.9)
+        .attr("font-size", "12pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("fill", "white")
+        .text((d: any) => d.message);
 
     pipeline
         .select(".statusCircle")

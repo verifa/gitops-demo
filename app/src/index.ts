@@ -2,13 +2,12 @@ import * as d3 from "d3";
 import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { loadConfig, Config } from "./config";
 import { updatePipelineVis, getPipelineData, PipelineStatus } from "./pipeline";
+import { visHeight, visWidth, nRows, nCols } from "./constants";
 
-const nRows = 40;
-const nCols = 40;
-const visWidth = 1000;
-const visHeight = 1000;
-
-const cellSize = visHeight / nRows;
+const cellSize = {
+    width: visWidth / nCols,
+    height: visHeight / nRows
+};
 
 const worker = new MyWorker();
 
@@ -50,7 +49,8 @@ const render = (state: number[][], config: Config) => {
                 .classed("row", true)
                 .attr(
                     "transform",
-                    (d: number[], i: number) => `translate(0, ${i * cellSize})`
+                    (d: number[], i: number) =>
+                        `translate(0, ${i * cellSize.height})`
                 )
         );
 
@@ -64,12 +64,12 @@ const render = (state: number[][], config: Config) => {
                 enter
                     .append("rect")
                     .classed("cell", true)
-                    .attr("width", cellSize)
-                    .attr("height", cellSize)
+                    .attr("width", cellSize.width)
+                    .attr("height", cellSize.height)
                     .attr("fill", (d: number) => (d ? liveColour : baseColour))
                     .attr("stroke", baseColour)
                     .attr("stroke-width", 5)
-                    .attr("x", (d: number, i: number) => i * cellSize),
+                    .attr("x", (d: number, i: number) => i * cellSize.width),
             update =>
                 update.call(update =>
                     update
