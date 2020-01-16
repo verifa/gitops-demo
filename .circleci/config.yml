@@ -24,6 +24,7 @@ jobs:
             - run:
                   name: build
                   command: |
+                      npm install -g yarn
                       yarn install --dev
                       yarn build
 
@@ -72,4 +73,5 @@ workflows:
         jobs:
             - jsonlint
             - eslint
+            - build
             - deploy
