@@ -35,18 +35,16 @@ const writeConfig = keys => {
 
 const runGitCommand = cmd => {
     if (doGitCommit) {
-        exec("git config user.email launchpad@verifa.io");
-        exec('git config user.name "John Launchpad"');
+        // exec("git config user.email launchpad@verifa.io");
+        // exec('git config user.name "John Launchpad"');
 
-        // const out = spawnSync("git", cmd., { shell: true });
-        exec(cmd, (err, stdout, stderr) => {
-            console.log(err);
-            console.log(stdout);
-            console.log(stderr);
-        });
+        spawnSync("git", ["config", "user.email", "launchpad@verifa.io"]);
+        spawnSync("git", ["config", "user.name", "John Launchpad"]);
+
+        const out = spawnSync("git", cmd, { shell: true });
         // console.log(out.stderr.toString());
         // console.log(out.stdout.toString());
-        // console.log(`Ran command: git ${cmd.join(" ")}`);
+        console.log(`Ran command: git ${cmd.join(" ")}`);
         console.log(`Ran command: ${cmd}`);
     } else {
         console.log(`Would have run command: ${cmd}`);
@@ -58,13 +56,13 @@ const commit = () => {
         exactly: 3,
         join: " "
     });
-    // const commitCommand = ["commit", "-a", "-m", `"${commitMessage}"`];
-    const commitCommand = `git commit -a -m "${commitMessage}"`;
+    const commitCommand = ["commit", "-a", "-m", `"${commitMessage}"`];
+    // const commitCommand = `git commit -a -m "${commitMessage}"`;
 
     runGitCommand(commitCommand);
 
-    // const pushCommand = ["push"];
-    const pushCommand = "git push";
+    const pushCommand = ["push"];
+    // const pushCommand = "git push";
 
     runGitCommand(pushCommand);
 };
