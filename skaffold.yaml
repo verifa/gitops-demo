@@ -23,6 +23,6 @@ profiles:
       artifacts:
       - image: docker.io/benmarsden/gol-backend-prod
         context: config_service
-      - image: docker.io/benmarsden/gol-backend-prod
+      - image: docker.io/benmarsden/gol-frontend-prod
         context: app
     deploy: {} #flux will take care of this
