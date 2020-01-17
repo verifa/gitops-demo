@@ -1,4 +1,4 @@
-import { writeFile } from "fs";
+import { writeFile, readFileSync } from "fs";
 import Launchpad from "launchpad-mini";
 import { default as words } from "random-words";
 import { spawnSync } from "child_process";
@@ -13,24 +13,15 @@ console.log(`Will ${doGitCommit ? "" : "not "}do git commits`);
 
 const pad = new Launchpad();
 const keys = new Map();
-const aliveColour = "#262f42";
 
 const gridFromKeys = keys => {
     return Array.from(keys.values()).map(el => [el.x, el.y]);
 };
 
 const writeConfig = keys => {
-    const config = JSON.parse(fs.readFileSync(outputFileName, "utf8"));
+    const config = JSON.parse(readFileSync(outputFileName, "utf8"));
 
-    Object.assign(config, {
-        config: {
-            colours: {
-                alive: aliveColour,
-                dead: "#fefefe"
-            },
-            initialAlive: gridFromKeys(keys)
-        }
-    });
+    config.config.initialAlive = gridFromKeys(keys);
 
     writeFile(outputFileName, JSON.stringify(config, null, 4), err => {
         if (err) {
@@ -44,10 +35,23 @@ const writeConfig = keys => {
 
 const runGitCommand = cmd => {
     if (doGitCommit) {
-        spawnSync("git", cmd);
+        const oldEmail = spawnSync("git", ["config", "user.email"])
+            .stdout.toString()
+            .trim();
+        const oldName = spawnSync("git", ["config", "user.name"])
+            .stdout.toString()
+            .trim();
+
+        spawnSync("git", ["config", "user.email", "launchpad@verifa.io"]);
+        spawnSync("git", ["config", "user.name", "John Launchpad"]);
+
+        const out = spawnSync("git", cmd, { shell: true });
         console.log(`Ran command: git ${cmd.join(" ")}`);
+
+        spawnSync("git", ["config", "user.email", oldEmail]);
+        spawnSync("git", ["config", "user.name", oldName]);
     } else {
-        console.log(`Would have run command: git ${cmd.join(" ")}`);
+        console.log(`Would have run command: ${cmd}`);
     }
 };
 
