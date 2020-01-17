@@ -1,7 +1,7 @@
 import { writeFile, readFileSync } from "fs";
 import Launchpad from "launchpad-mini";
 import { default as words } from "random-words";
-import { spawnSync, exec } from "child_process";
+import { spawnSync } from "child_process";
 
 const args = process.argv.slice(2);
 
@@ -35,17 +35,11 @@ const writeConfig = keys => {
 
 const runGitCommand = cmd => {
     if (doGitCommit) {
-        // exec("git config user.email launchpad@verifa.io");
-        // exec('git config user.name "John Launchpad"');
-
         spawnSync("git", ["config", "user.email", "launchpad@verifa.io"]);
         spawnSync("git", ["config", "user.name", "John Launchpad"]);
 
         const out = spawnSync("git", cmd, { shell: true });
-        // console.log(out.stderr.toString());
-        // console.log(out.stdout.toString());
         console.log(`Ran command: git ${cmd.join(" ")}`);
-        console.log(`Ran command: ${cmd}`);
     } else {
         console.log(`Would have run command: ${cmd}`);
     }
@@ -57,12 +51,10 @@ const commit = () => {
         join: " "
     });
     const commitCommand = ["commit", "-a", "-m", `"${commitMessage}"`];
-    // const commitCommand = `git commit -a -m "${commitMessage}"`;
 
     runGitCommand(commitCommand);
 
     const pushCommand = ["push"];
-    // const pushCommand = "git push";
 
     runGitCommand(pushCommand);
 };
