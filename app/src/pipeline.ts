@@ -1,8 +1,9 @@
 import * as d3 from "d3";
 import axios from "axios";
+import { visWidth } from "./constants";
 import { Config } from "./config";
 
-type StepStatus = "done" | "notDone" | "dormant";
+type StepStatus = "done" | "notDone" | "dormant" | "inProgress";
 
 interface GitCommit {
     hash: string;
@@ -40,7 +41,8 @@ const getLatestCommit = async (
 ): Promise<GitCommit> => {
     const response = await axios.get(`${url}/commits`, {
         params: {
-            sha: branch
+            sha: branch,
+            t: Date.now().toString()
         }
     });
     const latestCommit = response.data[0];
@@ -50,14 +52,14 @@ const getLatestCommit = async (
     };
 };
 
-const getAppCommit = async (branch: string) => {
+const getAppCommit = async (branch: string): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo",
         branch
     );
 };
 
-const getInfraCommit = async (branch: string) => {
+const getInfraCommit = async (branch: string): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo-infra",
         branch
@@ -66,15 +68,25 @@ const getInfraCommit = async (branch: string) => {
 
 const getBuild = async (): Promise<Build> => {
     const response = await axios.get(
-        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo?limit=1"
+        "https://circleci.com/api/v1.1/project/gh/verifa/gitops-demo",
+        {
+            params: {
+                limit: 5,
+                t: Date.now().toString()
+            }
+        }
     );
 
-    const lastBuild = response.data[0];
+    let status = "";
+    let buildNum = -1;
 
-    const status = lastBuild["status"];
-    const buildNum = lastBuild["build_num"];
-
-    // TODO: What happens if the build is running but not complete?
+    for (const job of response.data) {
+        if (job["workflows"]["job_name"] === "deploy") {
+            status = job["status"];
+            buildNum = job["build_num"];
+            break;
+        }
+    }
 
     return {
         id: buildNum,
@@ -86,14 +98,14 @@ export const getPipelineData = async (
     config: Config,
     lastState?: PipelineStatus
 ): Promise<PipelineStatus> => {
-    // TODO: Make branch to inspect configurable?
-
     if (lastState === undefined) {
         const [appCommit, infraCommit, build] = await Promise.all([
             getAppCommit(config.appBranch),
             getInfraCommit(config.infraBranch),
             getBuild()
         ]);
+
+        console.log("Initialising pipeline state");
 
         return {
             steps: {
@@ -120,6 +132,9 @@ export const getPipelineData = async (
 
     if (newState.steps.appCommit != "done") {
         const latestCommit = await getAppCommit(config.appBranch);
+
+        console.log("Got latest app commit");
+
         if (latestCommit.hash !== newState.appRepo.starting.hash) {
             console.log(`Found new app commit: ${latestCommit.hash}`);
 
@@ -135,11 +150,20 @@ export const getPipelineData = async (
         if (newState.steps.ci != "done") {
             const latestBuild = await getBuild();
 
-            if (
-                latestBuild.id != newState.ciBuild.current.id &&
-                latestBuild.status == "success"
-            ) {
-                newState.steps.ci = "done";
+            console.log("Got latest ci build");
+
+            if (latestBuild.id != newState.ciBuild.current.id) {
+                if (
+                    latestBuild.status === "success" ||
+                    latestBuild.status === "failed"
+                ) {
+                    newState.steps.ci = "done";
+                } else if (
+                    latestBuild.status === "queued" ||
+                    latestBuild.status === "running"
+                ) {
+                    newState.steps.ci = "inProgress";
+                }
             }
         }
 
@@ -148,6 +172,8 @@ export const getPipelineData = async (
             newState.steps.infraCommit != "done"
         ) {
             const latestInfra = await getInfraCommit(config.infraBranch);
+
+            console.log("Got latest infra commit");
 
             if (latestInfra.hash !== newState.infraRepo.starting.hash) {
                 newState.steps.infraCommit = "done";
@@ -160,20 +186,21 @@ export const getPipelineData = async (
     return newState;
 };
 
-const wrap = (text: any, width: number) => {
+const wrap = (text: any, width: number): void => {
     text.each(function() {
         // @ts-ignore
-        let text = d3.select(this),
+        const text = d3.select(this),
             words = text
                 .text()
                 .split(/\s+/)
                 .reverse(),
-            word,
-            line: string[] = [],
-            lineNumber = 0,
             lineHeight = 1.1, // ems
             y = text.attr("y"),
-            dy = parseFloat(text.attr("dy")),
+            dy = parseFloat(text.attr("dy"));
+
+        let word,
+            lineNumber = 0,
+            line: string[] = [],
             tspan = text
                 .text(null)
                 .append("tspan")
@@ -199,14 +226,26 @@ const wrap = (text: any, width: number) => {
     });
 };
 
-export const updatePipelineVis = (data: PipelineStatus) => {
+export const updatePipelineVis = (data: PipelineStatus): void => {
     const formattedData = [
-        { label: "App repo commit", status: data.steps.appCommit },
-        { label: "CI build", status: data.steps.ci },
-        { label: "Infra repo commit", status: data.steps.infraCommit }
+        {
+            label: "App repo commit",
+            status: data.steps.appCommit,
+            message: data.appRepo.current.hash
+        },
+        {
+            label: "CI build",
+            status: data.steps.ci,
+            message: data.ciBuild.current.id.toString()
+        },
+        {
+            label: "Infra repo commit",
+            status: data.steps.infraCommit,
+            message: data.infraRepo.current.hash
+        }
     ];
 
-    const pipelineWidth = 1000;
+    const pipelineWidth = visWidth;
     const circleRadius = 60;
 
     const wrapWidth = 100;
@@ -214,20 +253,29 @@ export const updatePipelineVis = (data: PipelineStatus) => {
     const colourMap = new Map<StepStatus, string>([
         ["done", "green"],
         ["notDone", "red"],
-        ["dormant", "grey"]
+        ["dormant", "grey"],
+        ["inProgress", "orange"]
     ]);
 
     const dormantTransparency = 0.2;
 
     const pipeline = d3
         .select("#pipeline")
-        .selectAll("g")
+        .selectAll(".step")
         .data(formattedData);
 
     const pipelineEnter = pipeline.enter();
 
     pipelineEnter
         .append("g")
+        .classed("step", true)
+        .attr(
+            "transform",
+            (_, i) =>
+                `translate(${(i / (formattedData.length - 1)) *
+                    (pipelineWidth - circleRadius * 2) +
+                    circleRadius}, ${circleRadius / 2})`
+        )
         .filter((_, i) => i < formattedData.length - 1)
         .append("line")
         .attr("x1", 0)
@@ -238,33 +286,24 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         )
         .attr("y2", circleRadius / 2)
         .attr("stroke", d => colourMap.get(d.status)!)
-        .attr("stroke-width", 25);
+        .attr("stroke-width", 25)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
 
     pipelineEnter
-        .selectAll("g")
-        .attr(
-            "transform",
-            (_, i) =>
-                `translate(${(i / (formattedData.length - 1)) *
-                    (pipelineWidth - circleRadius * 2) +
-                    circleRadius}, ${circleRadius / 2})`
-        )
+        .selectAll(".step")
         .append("circle")
+        .classed("backingCircle", true)
         .attr("fill", "#262e41")
         .attr("r", circleRadius)
         .attr("cy", 30);
 
     pipelineEnter
-        .selectAll("g")
-        .attr(
-            "transform",
-            (_, i) =>
-                `translate(${(i / (formattedData.length - 1)) *
-                    (pipelineWidth - circleRadius * 2) +
-                    circleRadius}, ${circleRadius / 2})`
-        )
+        .selectAll(".step")
         .append("circle")
         .classed("statusCircle", true)
+        .attr("stroke", (d: any) => colourMap.get(d.status)!)
         .attr("fill", (d: any) => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
@@ -273,7 +312,7 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         .attr("cy", 30);
 
     pipelineEnter
-        .selectAll("g")
+        .selectAll(".step")
         .append("text")
         .attr("dy", 0)
         .attr("y", 20)
@@ -286,9 +325,25 @@ export const updatePipelineVis = (data: PipelineStatus) => {
         .text((d: any) => d.label)
         .call(wrap, wrapWidth);
 
+    // TODO: Remove triplicate circles - super weird
+
+    pipelineEnter
+        .selectAll(".step")
+        .append("text")
+        .attr("dy", 0)
+        .attr("y", circleRadius * 1.9)
+        .attr("font-size", "12pt")
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("fill", "white")
+        .text((d: any) => d.message);
+
     pipeline
         .select(".statusCircle")
+        .transition()
+        .duration(1500)
         .attr("fill", d => colourMap.get(d.status)!)
+        .attr("stroke", d => colourMap.get(d.status)!)
         .attr("opacity", (d: any) =>
             d.status == "dormant" ? dormantTransparency : 1
         );
@@ -299,5 +354,12 @@ export const updatePipelineVis = (data: PipelineStatus) => {
             d.status == "dormant" ? dormantTransparency : 1
         );
 
-    pipeline.select("line").attr("stroke", d => colourMap.get(d.status)!);
+    pipeline
+        .select("line")
+        .transition()
+        .duration(1500)
+        .attr("stroke", d => colourMap.get(d.status)!)
+        .attr("opacity", (d: any) =>
+            d.status == "dormant" ? dormantTransparency : 1
+        );
 };
