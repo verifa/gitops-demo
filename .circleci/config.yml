@@ -71,4 +71,6 @@ workflows:
             - jsonlint
             - eslint
             - build
-            - deploy
+            - deploy:
+                  filters:
+                      branches: { only: "demo" }
