@@ -42,13 +42,14 @@ const runGitCommand = cmd => {
             .stdout.toString()
             .trim();
 
-        console.log(oldEmail, oldName);
-
         spawnSync("git", ["config", "user.email", "launchpad@verifa.io"]);
         spawnSync("git", ["config", "user.name", "John Launchpad"]);
 
         const out = spawnSync("git", cmd, { shell: true });
         console.log(`Ran command: git ${cmd.join(" ")}`);
+
+        spawnSync("git", ["config", "user.email", oldEmail]);
+        spawnSync("git", ["config", "user.name", oldName]);
     } else {
         console.log(`Would have run command: ${cmd}`);
     }
