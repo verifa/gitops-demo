@@ -35,6 +35,11 @@ const writeConfig = keys => {
 
 const runGitCommand = cmd => {
     if (doGitCommit) {
+        const oldEmail = spawnSync("git", ["config", "user.email"]).stdout;
+        const oldName = spawnSync("git", ["config", "user.name"]).stdout;
+
+        console.log(oldEmail, oldName);
+
         spawnSync("git", ["config", "user.email", "launchpad@verifa.io"]);
         spawnSync("git", ["config", "user.name", "John Launchpad"]);
 
