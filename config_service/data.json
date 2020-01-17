@@ -4,7 +4,28 @@
             "alive": "#262f42",
             "dead": "#8d98b2"
         },
-        "initialAlive": [],
+        "initialAlive": [
+            [
+                3,
+                4
+            ],
+            [
+                3,
+                3
+            ],
+            [
+                4,
+                4
+            ],
+            [
+                4,
+                2
+            ],
+            [
+                5,
+                2
+            ]
+        ],
         "appBranch": "demo",
         "infraBranch": "master"
     }
