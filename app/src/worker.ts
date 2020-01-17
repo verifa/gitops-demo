@@ -3,12 +3,12 @@ const ctx: Worker = self as any;
 let shouldStop = false;
 
 const nextState = (state: number[][]): number[][] => {
-    let array: number[][] = [];
+    const array: number[][] = [];
 
-    const countLiveNeighbours = (i: number, j: number) => {
+    const countLiveNeighbours = (i: number, j: number): number => {
         let count = 0;
 
-        for (let iOffset of [-1, 0, 1]) {
+        for (const iOffset of [-1, 0, 1]) {
             let i2 = i + iOffset;
 
             // Wrap rows
@@ -18,7 +18,7 @@ const nextState = (state: number[][]): number[][] => {
                 i2 -= state.length;
             }
 
-            for (let jOffset of [-1, 0, 1]) {
+            for (const jOffset of [-1, 0, 1]) {
                 if (iOffset == 0 && jOffset == 0) {
                     continue;
                 }
@@ -64,11 +64,11 @@ const nextState = (state: number[][]): number[][] => {
     return array;
 };
 
-const mainLoop = async (state: number[][]) => {
+const mainLoop = async (state: number[][]): Promise<void> => {
     const minTimeBetweenFrames = 500;
 
     while (!shouldStop) {
-        let lastUpdate = Date.now();
+        const lastUpdate = Date.now();
 
         state = nextState(state);
 
