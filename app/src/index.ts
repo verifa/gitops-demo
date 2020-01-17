@@ -3,6 +3,7 @@ import MyWorker = require("worker-loader?name=dist/[name].js!./worker");
 import { loadConfig, Config } from "./config";
 import { updatePipelineVis, getPipelineData, PipelineStatus } from "./pipeline";
 import { visHeight, visWidth, nRows, nCols } from "./constants";
+import Cookies from "js-cookie";
 
 const cellSize = {
     width: visWidth / nCols,
@@ -100,6 +101,20 @@ const setTimer = (): void => {
 };
 
 const init = (): void => {
+    const githubClient = Cookies.get("githubClient"),
+        githubSecret = Cookies.get("githubSecret");
+
+    const githubAuth = {
+        clientId: githubClient,
+        clientSecret: githubSecret
+    };
+
+    if (githubAuth.clientId !== undefined) {
+        console.log("Found github credentials");
+    } else {
+        console.log("Did not find github credentials");
+    }
+
     const mainVis = d3
         .select("#visRoot")
         .append("svg")
@@ -172,7 +187,7 @@ const init = (): void => {
         const fastPipelineUpdate = 1000;
 
         const updatePipeline = (): void => {
-            getPipelineData(config, pipelineStatus).then(
+            getPipelineData(config, githubAuth, pipelineStatus).then(
                 (data: PipelineStatus) => {
                     updatePipelineVis(data);
                     pipelineStatus = data;

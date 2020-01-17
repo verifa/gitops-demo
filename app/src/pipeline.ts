@@ -15,6 +15,11 @@ interface Build {
     status: string;
 }
 
+interface GitHubAuth {
+    clientId: string | undefined;
+    clientSecret: string | undefined;
+}
+
 export interface PipelineStatus {
     steps: {
         appCommit: StepStatus;
@@ -37,13 +42,24 @@ export interface PipelineStatus {
 
 const getLatestCommit = async (
     url: string,
+    githubAuth: GitHubAuth,
     branch = "master"
 ): Promise<GitCommit> => {
+    const params: any = {
+        sha: branch,
+        t: Date.now().toString()
+    };
+
+    if (
+        githubAuth.clientId !== undefined &&
+        githubAuth.clientSecret !== undefined
+    ) {
+        params["client_id"] = githubAuth.clientId;
+        params["client_secret"] = githubAuth.clientSecret;
+    }
+
     const response = await axios.get(`${url}/commits`, {
-        params: {
-            sha: branch,
-            t: Date.now().toString()
-        }
+        params: params
     });
     const latestCommit = response.data[0];
     return {
@@ -52,16 +68,24 @@ const getLatestCommit = async (
     };
 };
 
-const getAppCommit = async (branch: string): Promise<GitCommit> => {
+const getAppCommit = async (
+    branch: string,
+    githubAuth: GitHubAuth
+): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo",
+        githubAuth,
         branch
     );
 };
 
-const getInfraCommit = async (branch: string): Promise<GitCommit> => {
+const getInfraCommit = async (
+    branch: string,
+    githubAuth: GitHubAuth
+): Promise<GitCommit> => {
     return getLatestCommit(
         "https://api.github.com/repos/verifa/gitops-demo-infra",
+        githubAuth,
         branch
     );
 };
@@ -96,12 +120,13 @@ const getBuild = async (): Promise<Build> => {
 
 export const getPipelineData = async (
     config: Config,
+    githubAuth: GitHubAuth,
     lastState?: PipelineStatus
 ): Promise<PipelineStatus> => {
     if (lastState === undefined) {
         const [appCommit, infraCommit, build] = await Promise.all([
-            getAppCommit(config.appBranch),
-            getInfraCommit(config.infraBranch),
+            getAppCommit(config.appBranch, githubAuth),
+            getInfraCommit(config.infraBranch, githubAuth),
             getBuild()
         ]);
 
@@ -131,7 +156,7 @@ export const getPipelineData = async (
     const newState = Object.assign({}, lastState);
 
     if (newState.steps.appCommit != "done") {
-        const latestCommit = await getAppCommit(config.appBranch);
+        const latestCommit = await getAppCommit(config.appBranch, githubAuth);
 
         console.log("Got latest app commit");
 
@@ -171,7 +196,10 @@ export const getPipelineData = async (
             newState.steps.ci == "done" &&
             newState.steps.infraCommit != "done"
         ) {
-            const latestInfra = await getInfraCommit(config.infraBranch);
+            const latestInfra = await getInfraCommit(
+                config.infraBranch,
+                githubAuth
+            );
 
             console.log("Got latest infra commit");
 
