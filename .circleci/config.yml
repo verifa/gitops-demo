@@ -60,10 +60,10 @@ jobs:
             - setup_remote_docker:
                   version: 18.06.0-ce
             - run:
-                  name: Build and push the image to the production registry with skaffold
+                  name: Build and push the image(s) to the production registry with skaffold
                   command: |
                       echo $REGISTRY_PASSWORD | docker login --username $REGISTRY_USERNAME --password-stdin
-                      skaffold build --profile=production
+                      skaffold build --profile=demo
 workflows:
     version: 2
     commit:
