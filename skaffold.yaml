@@ -16,7 +16,7 @@ deploy:
       - ./application-ingress.yml
 profiles:
   - name: production
-    ## This profile pushes the image
+    ## This profile builds and pushes both frontend and backend
     build:
       local: 
         push: true
@@ -25,4 +25,13 @@ profiles:
         context: config_service
       - image: docker.io/benmarsden/gol-frontend-prod
         context: app
+    deploy: {} #flux will take care of this
+  - name: demo
+    ## This profile builds and pushes only backend, designed for demo use
+    build:
+      local: 
+        push: true
+      artifacts:
+      - image: docker.io/benmarsden/gol-backend-prod
+        context: config_service
     deploy: {} #flux will take care of this
