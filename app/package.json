@@ -24,7 +24,7 @@
     "dependencies": {
         "@types/d3": "^5.7.2",
         "@types/js-cookie": "^2.2.4",
-        "axios": "^0.19.1",
+        "axios": "^0.21.1",
         "d3": "^5.14.2",
         "js-cookie": "^2.2.1"
     }
